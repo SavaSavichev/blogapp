@@ -1,81 +1,32 @@
 package main.model;
 
-import javax.persistence.*;
-import javax.validation.constraints.NotNull;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.Set;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
+import javax.persistence.*;
+import java.security.Timestamp;
+
+@Data
+@NoArgsConstructor
 @Entity
 @Table(name = "post_comments")
-public class Comment
-{
+public class Comment {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int id;
+    @Column(name="id")
+    private Integer commentId;
 
-    @ManyToOne
-    @JoinColumn(name = "parent_id", referencedColumnName = "id")
-    private Comment parentComment;
+    private Integer parent_id;
 
-    @NotNull
-    @OneToMany(mappedBy = "parentComment")
-    private final Set<Comment> childComments = new HashSet<>();
+    @Column(insertable = false, updatable = false)
+    private Integer post_id;
 
-    @NotNull
-    @ManyToOne(cascade = CascadeType.ALL)
-    @JoinColumn(name = "post_id", referencedColumnName = "id", nullable = false)
-    private Post post;
-
-    @NotNull
-    @ManyToOne(cascade = CascadeType.ALL)
-    @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = false)
-    private User user;
-
-    @NotNull
-    @Column(nullable = false)
-    private Date time;
-
-    @Column(nullable = false)
+    @Column(name = "user_id")
+    private Integer userId;
+    private Timestamp time;
     private String text;
 
-    public int getId() {
-        return id;
-    }
-
-    public void setId(int id) {
-        this.id = id;
-    }
-
-    public Post getPost() {
-        return post;
-    }
-
-    public void setPost(Post post) {
-        this.post = post;
-    }
-
-    public User getUser() {
-        return user;
-    }
-
-    public void setUser(User user) {
-        this.user = user;
-    }
-
-    public Date getTime() {
-        return time;
-    }
-
-    public void setTime(Date time) {
-        this.time = time;
-    }
-
-    public String getText() {
-        return text;
-    }
-
-    public void setText(String text) {
-        this.text = text;
-    }
+    @ManyToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name="post_id")
+    public Post post;
 }

@@ -1,137 +1,71 @@
 package main.model;
 
-import main.enums.ModerationStatus;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import main.model.enums.ModerationStatus;
+import org.hibernate.annotations.LazyCollection;
+import org.hibernate.annotations.LazyCollectionOption;
+import org.hibernate.annotations.Where;
 
 import javax.persistence.*;
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Size;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.Set;
+import java.io.Serializable;
+import java.sql.Timestamp;
+import java.util.Collection;
 
+@Data
+@NoArgsConstructor
 @Entity
 @Table(name = "posts")
-public class Post
-{
+public class Post implements Serializable {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int id;
+    @Column(name = "id")
+    Integer postId;
 
-    @Column(name = "is_active", nullable = false)
-    private boolean isActive;
+    @Column(name = "is_active")
+    int isActive;
 
-    @NotNull
+    @Column(name = "moderation_status")
     @Enumerated(EnumType.STRING)
-    @Column(name = "moderation_status", nullable = false)
-    private ModerationStatus moderationStatus;
+    ModerationStatus moderationStatus;
 
-    @ManyToOne(cascade = CascadeType.MERGE)
-    @JoinColumn(name = "moderator_id", referencedColumnName = "id")
-    private User moderatorId;
+    @Column(name = "moderator_id")
+    Integer moderatorId;
 
-    @NotNull
-    @ManyToOne(cascade = CascadeType.MERGE, optional = false)
-    @JoinColumn(name = "user_id", referencedColumnName = "id")
-    private User user;
+    @Column(name = "user_id")
+    Integer userId;
 
-    @NotNull
-    @Column(nullable = false)
-    private Date time;
+    Timestamp timestamp;
+    String title;
+    String text;
 
-    @Size(max = 255)
-    @Column(nullable = false)
-    private String title;
+    @Column(name = "view_count")
+    private Integer viewCount;
 
-    @Column(nullable = false)
-    private String text;
+    @OneToMany(mappedBy = "post", fetch = FetchType.LAZY)
+    private Collection<Comment> postComments;
 
-    @Column(name = "view_count", nullable = false)
-    private int viewCount;
+    @OneToMany(mappedBy = "post", fetch = FetchType.LAZY)
+    private Collection<Vote> postVotes;
 
-    @NotNull
-    @ManyToMany(cascade = CascadeType.ALL)
-    @JoinTable(name = "tag2post",
-            joinColumns = @JoinColumn(name = "post_id", referencedColumnName="id"),
-            inverseJoinColumns = @JoinColumn(name = "tag_id", referencedColumnName="id"))
-    private Set<Tag> tags = new HashSet<>();
+    @OneToMany(mappedBy = "post", fetch = FetchType.LAZY)
+    @LazyCollection(LazyCollectionOption.EXTRA)
+    @Where(clause = "value = 1")
+    private Collection<Vote> postLikes;
 
-    public int getId() {
-        return id;
-    }
+    @OneToMany(mappedBy = "post", fetch = FetchType.LAZY)
+    @LazyCollection(LazyCollectionOption.EXTRA)
+    @Where(clause = "value = -1")
+    private Collection<Vote> postDislikes;
 
-    public void setId(int id) {
-        this.id = id;
-    }
+    public String getAnnounce() {
+        String postText = getText();
+        if( postText == null){
+            return "";
+        }
 
-    public boolean getIsActive() {
-        return isActive;
-    }
-
-    public void setIsActive(boolean isActive) {
-        this.isActive = isActive;
-    }
-
-    public ModerationStatus getModerationStatus() {
-        return moderationStatus;
-    }
-
-    public void setModerationStatus(ModerationStatus moderationStatus) {
-        this.moderationStatus = moderationStatus;
-    }
-
-    public User getModeratorId() {
-        return moderatorId;
-    }
-
-    public void setModeratorId(User moderatorId) {
-        this.moderatorId = moderatorId;
-    }
-
-    public User getUser() {
-        return user;
-    }
-
-    public void setUserId(User user) {
-        this.user = user;
-    }
-
-    public Date getTime() {
-        return time;
-    }
-
-    public void setTime(Date time) {
-        this.time = time;
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
-    public String getText() {
-        return text;
-    }
-
-    public void setText(String text) {
-        this.text = text;
-    }
-
-    public int getViewCount() {
-        return viewCount;
-    }
-
-    public void setViewCount(int viewCount) {
-        this.viewCount = viewCount;
-    }
-
-    public Set<Tag> getTags() {
-        return tags;
-    }
-
-    public void setTags(Set<Tag> tags) {
-        this.tags = tags;
+        String announce = postText.replaceAll("<(.*?)>","" ).replaceAll("[\\p{P}\\p{S}]", "");
+        announce = announce.substring(0, Math.min(150, announce.length())) + "...";
+        return announce;
     }
 }

@@ -2,3 +2,12 @@ spring.datasource.url: jdbc:mysql://localhost:3306/blog
 spring.datasource.username: root
 spring.datasource.password: Flatland89268617388)))
 spring.jpa.hibernate.ddl-auto: create
+
+blog:
+  info:
+    title: DevPub
+    subtitle: Рассказы разработчиков
+    phone: +7 903 666-44-55
+    email: mail@mail.ru
+    copyright: Артем Савичев
+    copyrightFrom: 2022
