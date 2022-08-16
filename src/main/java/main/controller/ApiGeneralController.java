@@ -1,27 +1,26 @@
 package main.controller;
 
+import lombok.AllArgsConstructor;
 import main.api.response.InitResponse;
 
+import main.service.PostService;
 import main.service.SettingsService;
 import main.service.TagService;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping(value = "/api", produces = MediaType.APPLICATION_JSON_VALUE)
+@AllArgsConstructor
 public class ApiGeneralController
 {
     private final InitResponse initResponse;
     private final TagService tagService;
     private final SettingsService settingsService;
-
-    public ApiGeneralController(InitResponse initResponse, TagService tagService, SettingsService settingsService) {
-        this.initResponse = initResponse;
-        this.tagService = tagService;
-        this.settingsService = settingsService;
-    }
+    private final PostService postService;
 
     @GetMapping("/init")
     private InitResponse init() {

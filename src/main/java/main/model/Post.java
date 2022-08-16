@@ -37,6 +37,7 @@ public class Post implements Serializable {
 
     Timestamp timestamp;
     String title;
+    @Column(columnDefinition = "text")
     String text;
 
     @Column(name = "view_count")
