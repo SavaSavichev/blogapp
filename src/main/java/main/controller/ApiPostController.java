@@ -28,4 +28,29 @@ public class ApiPostController
 
         return postService.searchPosts(query, offset, limit);
     }
+
+    @GetMapping("/calendar")
+    public ResponseEntity<?> calendarPosts(@RequestParam Integer year) {
+        return postService.calendarPosts(year);
+    }
+
+
+    @GetMapping("/post/byDate")
+    public ResponseEntity<?> postsByDate(@RequestParam String date,
+                                         @RequestParam(defaultValue = "0") Integer offset,
+                                         @RequestParam(defaultValue = "5") Integer limit){
+        return postService.postsByDate(date, offset, limit);
+    }
+
+    @GetMapping("/post/byTag")
+    public ResponseEntity<?> postByTag(@RequestParam String tag,
+                                       @RequestParam(defaultValue = "0") Integer offset,
+                                       @RequestParam(defaultValue = "5") Integer limit){
+        return postService.postsByTag(tag, offset, limit);
+    }
+
+    @GetMapping("/post/{ID:\\d+}")
+    public ResponseEntity<?> postById(@PathVariable("ID") Integer ID) {
+        return postService.getPostById(ID);
+    }
 }
