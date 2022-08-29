@@ -16,7 +16,6 @@ import org.springframework.stereotype.Service;
 
 import java.sql.Timestamp;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -173,9 +172,7 @@ public class PostService {
         if (postRepository.findById(id).isEmpty()) {
             return new ResponseEntity<>("Post with ID = " + id + " not found.", HttpStatus.NOT_FOUND);
         }
-
         PostByIdResponse postByIdResponse = postFacade.mappingPostById(id);
-
         return ResponseEntity.ok(postByIdResponse);
     }
 }

@@ -1,10 +1,8 @@
 package main.dto;
 
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 @Data
-@NoArgsConstructor
 public class PostDTO {
     private Integer id;
     private Long timestamp;

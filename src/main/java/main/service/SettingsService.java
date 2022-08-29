@@ -1,10 +1,8 @@
 package main.service;
 
-import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import main.model.GlobalSettings;
 import main.repository.GlobalSettingsRepository;
-import main.repository.UserRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
