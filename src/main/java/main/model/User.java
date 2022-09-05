@@ -2,12 +2,15 @@ package main.model;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
+import main.model.enums.Role;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.lang.Nullable;
 
 import javax.persistence.*;
 import java.sql.Timestamp;
 
+@Accessors(chain = true)
 @Data
 @NoArgsConstructor
 @Entity
@@ -20,7 +23,7 @@ public class User {
     private Integer userId;
 
     @Column(name = "is_moderator")
-    private boolean isModerator;
+    private Integer isModerator;
 
     @Column(name = "reg_time")
     @DateTimeFormat(pattern = "YYYY-MM-dd HH:mm:ss")
@@ -37,4 +40,8 @@ public class User {
 
     @Nullable
     private String photo;
+
+    public Role getRole(){
+        return isModerator == 1 ? Role.MODERATOR : Role.USER;
+    }
 }

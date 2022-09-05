@@ -7,6 +7,7 @@ import main.api.response.PostResponse;
 import main.facade.PostFacade;
 import main.model.Post;
 import main.model.Tag;
+import main.model.User;
 import main.repository.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -14,6 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import java.security.Principal;
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -27,7 +29,9 @@ public class PostService {
     private final PostFacade postFacade;
     private final TagRepository tagRepository;
     private final Tag2PostRepository tag2PostRepository;
+    private final UserRepository userRepository;
 
+    private Integer startYear = 1970;
 
     public ResponseEntity<?> getPosts(Integer offset, Integer limit, String mode) {
         if (offset > limit) {
@@ -38,26 +42,6 @@ public class PostService {
         PostResponse postResponse = postFacade.mappingPostResponse(posts, offset, limit);
 
         return ResponseEntity.ok(postResponse);
-    }
-
-    public List<Post> getSortedPosts(Integer offset, Integer limit, String mode) {
-        Page<Post> posts;
-        PageRequest pageRequest = PageRequest.of(offset / limit, limit);
-        switch (mode) {
-            case "popular":
-                posts = postRepository.getPopularPosts(pageRequest);
-                break;
-            case "best":
-                posts = postRepository.getBestPosts(pageRequest);
-                break;
-            case "early":
-                posts = postRepository.getEarlyPosts(pageRequest);
-                break;
-            default:
-                posts = postRepository.getRecentPosts(pageRequest);
-                break;
-        }
-        return posts.toList();
     }
 
     public ResponseEntity<?> searchPosts(String query, Integer offset, Integer limit) {
@@ -96,7 +80,7 @@ public class PostService {
                 .map(p -> convertTimeToYear(p.getTimestamp()))
                 .distinct()
                 .collect(Collectors.toList());
-        if (year > 1970 && year <= convertTimeToYear(currentTimestamp)) {
+        if (year > startYear && year <= convertTimeToYear(currentTimestamp)) {
             timestamps = postRepository.findAllActivePosts().stream()
                     .map(Post::getTimestamp)
                     .filter(t_stamp -> convertTimeToYear(t_stamp).equals(year))
@@ -160,19 +144,73 @@ public class PostService {
         return ResponseEntity.ok(postResponse);
     }
 
-    public Integer convertTimeToYear(Timestamp time) {
-        Calendar cal = Calendar.getInstance();
-        cal.setTimeZone(TimeZone.getTimeZone("UTC+3"));
-        cal.setTimeInMillis(time.getTime());
-        String curTime = String.valueOf(cal.get(Calendar.YEAR));
-        return Integer.parseInt(curTime);
-    }
-
     public ResponseEntity<?> getPostById(Integer id) {
         if (postRepository.findById(id).isEmpty()) {
             return new ResponseEntity<>("Post with ID = " + id + " not found.", HttpStatus.NOT_FOUND);
         }
         PostByIdResponse postByIdResponse = postFacade.mappingPostById(id);
         return ResponseEntity.ok(postByIdResponse);
+    }
+
+    public ResponseEntity<?> getMyPosts(Principal principal, Integer offset, Integer limit, String status) {
+        if (offset > limit) {
+            return ResponseEntity.badRequest().body("Wrong input parameters!");
+        }
+
+        Optional<User> user = userRepository.findOneByEmail(principal.getName());
+        List<Post> posts = new ArrayList<>();
+        if (user.isPresent()) {
+            int userId = user.get().getUserId();
+            posts = getSortedMyPosts(userId, offset, limit, status);
+        }
+        return ResponseEntity.ok(postFacade.mappingPostResponse(posts, offset, limit));
+    }
+
+    public List<Post> getSortedPosts(Integer offset, Integer limit, String mode) {
+        Page<Post> posts;
+        PageRequest pageRequest = PageRequest.of(offset / limit, limit);
+        switch (mode) {
+            case "popular":
+                posts = postRepository.getPopularPosts(pageRequest);
+                break;
+            case "best":
+                posts = postRepository.getBestPosts(pageRequest);
+                break;
+            case "early":
+                posts = postRepository.getEarlyPosts(pageRequest);
+                break;
+            default:
+                posts = postRepository.getRecentPosts(pageRequest);
+                break;
+        }
+        return posts.toList();
+    }
+
+    public List<Post> getSortedMyPosts(Integer userId, Integer offset, Integer limit, String status) {
+        Page<Post> posts;
+        PageRequest pageRequest = PageRequest.of(offset / limit, limit);
+        switch (status) {
+            case "pending":
+                posts = postRepository.getPendingPosts(userId, pageRequest);
+                break;
+            case "declined":
+                posts = postRepository.getDeclinedPosts(userId, pageRequest);
+                break;
+            case "published":
+                posts = postRepository.getPublishedPosts(userId, pageRequest);
+                break;
+            default:
+                posts = postRepository.getInactivePosts(userId, pageRequest);
+                break;
+        }
+        return posts.toList();
+    }
+
+    public Integer convertTimeToYear(Timestamp time) {
+        Calendar cal = Calendar.getInstance();
+        cal.setTimeZone(TimeZone.getTimeZone("UTC+3"));
+        cal.setTimeInMillis(time.getTime());
+        String curTime = String.valueOf(cal.get(Calendar.YEAR));
+        return Integer.parseInt(curTime);
     }
 }

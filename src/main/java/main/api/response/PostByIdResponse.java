@@ -1,11 +1,13 @@
 package main.api.response;
 
 import lombok.Data;
+import lombok.experimental.Accessors;
 import main.dto.CommentsDTO;
 import main.dto.UserDTO;
 
 import java.util.List;
 
+@Accessors(chain = true)
 @Data
 public class PostByIdResponse {
     private Integer id;

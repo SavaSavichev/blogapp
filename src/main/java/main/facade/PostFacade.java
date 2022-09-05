@@ -34,21 +34,21 @@ public class PostFacade {
         List<PostDTO> postDTOS = new ArrayList<>();
 
         for (Post post : posts) {
-            PostDTO postDTO = new PostDTO();
-            postDTO.setId(post.getPostId());
-            postDTO.setTimestamp(post.getTimestamp().getTime() / 1000);
+            PostDTO postDTO = new PostDTO()
+                    .setId(post.getPostId())
+                    .setTimestamp(post.getTimestamp().getTime() / 1000);
             int userId = post.getUserId();
             User user = userRepository.getOne(userId);
-            UserDTO userDTO = new UserDTO();
-            userDTO.setId(userId);
-            userDTO.setName(user.getName());
-            postDTO.setUser(userDTO);
-            postDTO.setTitle(post.getTitle());
-            postDTO.setAnnounce(post.getAnnounce().replaceAll("<(.*?)>", "").replaceAll("[\\p{P}\\p{S}]", ""));
-            postDTO.setLikeCount(likeCount(post));
-            postDTO.setDislikeCount(dislikeCount(post));
-            postDTO.setCommentCount(commentRepository.getCommentCountByPostId(post.getPostId()));
-            postDTO.setViewCount(post.getViewCount());
+            UserDTO userDTO = new UserDTO()
+                    .setId(userId)
+                    .setName(user.getName());
+            postDTO.setUser(userDTO)
+                    .setTitle(post.getTitle())
+                    .setAnnounce(post.getAnnounce().replaceAll("<(.*?)>", "").replaceAll("[\\p{P}\\p{S}]", ""))
+                    .setLikeCount(likeCount(post))
+                    .setDislikeCount(dislikeCount(post))
+                    .setCommentCount(commentRepository.getCommentCountByPostId(post.getPostId()))
+                    .setViewCount(post.getViewCount());
             postDTOS.add(postDTO);
         }
         PostResponse postResponse = new PostResponse();
@@ -71,21 +71,21 @@ public class PostFacade {
             }
 
         for (Post post : sortedPosts) {
-            PostDTO postDTO = new PostDTO();
-            postDTO.setId(post.getPostId());
-            postDTO.setTimestamp(post.getTimestamp().getTime() / 1000);
+            PostDTO postDTO = new PostDTO()
+                    .setId(post.getPostId())
+                    .setTimestamp(post.getTimestamp().getTime() / 1000);
             int userId = post.getUserId();
             User user = userRepository.getOne(userId);
-            UserDTO userDTO = new UserDTO();
-            userDTO.setId(userId);
-            userDTO.setName(user.getName());
-            postDTO.setUser(userDTO);
-            postDTO.setTitle(post.getTitle());
-            postDTO.setAnnounce(post.getAnnounce().replaceAll("<(.*?)>", "").replaceAll("[\\p{P}\\p{S}]", ""));
-            postDTO.setLikeCount(likeCount(post));
-            postDTO.setDislikeCount(dislikeCount(post));
-            postDTO.setCommentCount(commentRepository.getCommentCountByPostId(post.getPostId()));
-            postDTO.setViewCount(post.getViewCount());
+            UserDTO userDTO = new UserDTO()
+                    .setId(userId)
+                    .setName(user.getName());
+            postDTO.setUser(userDTO)
+                    .setTitle(post.getTitle())
+                    .setAnnounce(post.getAnnounce().replaceAll("<(.*?)>", "").replaceAll("[\\p{P}\\p{S}]", ""))
+                    .setLikeCount(likeCount(post))
+                    .setDislikeCount(dislikeCount(post))
+                    .setCommentCount(commentRepository.getCommentCountByPostId(post.getPostId()))
+                    .setViewCount(post.getViewCount());
             postDTOS.add(postDTO);
         }
         PostResponse postResponse = new PostResponse();
@@ -101,35 +101,35 @@ public class PostFacade {
         Post post = postRepository.getOne(postId);
         post.setViewCount(post.getViewCount() + 1);
         postRepository.save(post);
-        postByIdResponse.setId(post.getPostId());
-        postByIdResponse.setTimestamp(post.getTimestamp().getTime() / 1000);
-        postByIdResponse.setActive(true);
+        postByIdResponse.setId(post.getPostId())
+                .setTimestamp(post.getTimestamp().getTime() / 1000)
+                .setActive(true);
 
         User user = userRepository.getOne(post.getUserId());
-        UserDTO userDTO = new UserDTO();
-        userDTO.setName(user.getName());
-        userDTO.setId(user.getUserId());
+        UserDTO userDTO = new UserDTO()
+                .setName(user.getName())
+                .setId(user.getUserId());
 
-        postByIdResponse.setUser(userDTO);
-        postByIdResponse.setTitle(post.getTitle());
-        postByIdResponse.setText(post.getText());
-        postByIdResponse.setLikeCount(likeCount(post));
-        postByIdResponse.setDislikeCount(dislikeCount(post));
-        postByIdResponse.setViewCount(post.getViewCount());
+        postByIdResponse.setUser(userDTO)
+                .setTitle(post.getTitle())
+                .setText(post.getText())
+                .setLikeCount(likeCount(post))
+                .setDislikeCount(dislikeCount(post))
+                .setViewCount(post.getViewCount());
 
         List<Comment> postCommentList = commentRepository.findCommentsByPostId(postId);
         CommentsDTO commentsDTO = new CommentsDTO();
         List<CommentsDTO> commentsDTOS = new ArrayList<>();
 
         for (Comment comment : postCommentList) {
-            commentsDTO.setId(comment.getCommentId());
-            commentsDTO.setTimestamp(comment.getTime().getTime() / 1000);
-            commentsDTO.setText(comment.getText());
+            commentsDTO.setId(comment.getCommentId())
+                    .setTimestamp(comment.getTime().getTime() / 1000)
+                    .setText(comment.getText());
             User commentUser = userRepository.findById(comment.getUserId()).orElseThrow();
-            UserComDTO userComDTO = new UserComDTO();
-            userComDTO.setId(commentUser.getUserId());
-            userComDTO.setName(commentUser.getName());
-            userComDTO.setPhoto(commentUser.getPhoto());
+            UserComDTO userComDTO = new UserComDTO()
+                    .setId(commentUser.getUserId())
+                    .setName(commentUser.getName())
+                    .setPhoto(commentUser.getPhoto());
             commentsDTO.setUser(userComDTO);
             commentsDTOS.add(commentsDTO);
         }

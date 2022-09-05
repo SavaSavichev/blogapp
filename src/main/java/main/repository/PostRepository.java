@@ -28,8 +28,20 @@ public interface PostRepository extends JpaRepository<Post, Integer> {
     Collection<Post> findAllActivePosts ();
 
     @Query("FROM Post p WHERE p.userId = ?1")
-    Collection<Post> findAllPostsByUserId (int userId);
+    List<Post> findAllPostsByUserId (Integer userId);
 
     List<Post> findByTextContaining(String text);
+
+    @Query("FROM Post p WHERE p.userId = ?1 AND p.isActive = 0 ORDER BY p.timestamp DESC")
+    Page<Post> getInactivePosts(Integer userId, PageRequest pageRequest);
+
+    @Query("FROM Post p WHERE p.userId = ?1 AND p.isActive = 1 AND p.moderationStatus = 'NEW' ORDER BY p.timestamp DESC")
+    Page<Post> getPendingPosts(Integer userId, PageRequest pageRequest);
+
+    @Query("FROM Post p WHERE p.userId = ?1 AND p.isActive = 1 AND p.moderationStatus = 'DECLINED' ORDER BY p.timestamp DESC")
+    Page<Post> getDeclinedPosts(Integer userId, PageRequest pageRequest);
+
+    @Query("FROM Post p WHERE p.userId = ?1 AND p.isActive = 1 AND p.moderationStatus = 'ACCEPTED' ORDER BY p.timestamp DESC")
+    Page<Post> getPublishedPosts(Integer userId, PageRequest pageRequest);
 }
 

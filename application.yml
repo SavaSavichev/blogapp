@@ -1,7 +1,8 @@
 spring.datasource.url: jdbc:mysql://localhost:3306/blog
 spring.datasource.username: root
 spring.datasource.password: Flatland89268617388)))
-spring.jpa.hibernate.ddl-auto: create
+spring.jpa.show-sql: false
+spring.jpa.hibernate.ddl-auto: validate
 
 blog:
   info:
@@ -11,3 +12,8 @@ blog:
     email: mail@mail.ru
     copyright: Артем Савичев
     copyrightFrom: 2022
+
+config:
+  nameLength: 25
+  passwordMinLength: 6
+  passwordMaxLength: 12

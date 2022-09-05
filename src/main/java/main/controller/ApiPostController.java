@@ -1,16 +1,20 @@
 package main.controller;
 
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
+import main.repository.UserRepository;
 import main.service.PostService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
+
 @RestController
 @RequestMapping(value = "/api")
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class ApiPostController
 {
     private final PostService postService;
+    private final UserRepository userRepository;
 
     @GetMapping("/post")
     @ResponseBody
@@ -22,8 +26,8 @@ public class ApiPostController
 
     @GetMapping("/post/search")
     public ResponseEntity<?> searchPosts (@RequestParam String query,
-                                         @RequestParam(defaultValue = "0") Integer offset,
-                                         @RequestParam(defaultValue = "5") Integer limit){
+                                          @RequestParam(defaultValue = "0") Integer offset,
+                                          @RequestParam(defaultValue = "5") Integer limit){
         if (query.isBlank()) return getPosts(offset, limit, "recent");
 
         return postService.searchPosts(query, offset, limit);
@@ -52,5 +56,14 @@ public class ApiPostController
     @GetMapping("/post/{ID:\\d+}")
     public ResponseEntity<?> postById(@PathVariable("ID") Integer ID) {
         return postService.getPostById(ID);
+    }
+
+    @GetMapping("/post/my")
+    public ResponseEntity<?> postByUser(Principal principal,
+                                        @RequestParam(defaultValue = "0") Integer offset,
+                                        @RequestParam(defaultValue = "5") Integer limit,
+                                        @RequestParam String status) {
+        return postService.getMyPosts(principal, offset, limit, status);
+
     }
 }
