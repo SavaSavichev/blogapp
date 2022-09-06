@@ -102,40 +102,33 @@ public class AuthService {
             Authentication auth =
                     authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword()));
             SecurityContextHolder.getContext().setAuthentication(auth);
-
-            UserCheckDTO userCheckDTO = new UserCheckDTO();
             loginResponse.setResult(true);
-
-        int modCount =
-                currentUser.getIsModerator() == 1 ? userRepository.getModerationCount(currentUser.getUserId()) : 0;
-        userCheckDTO.setId(currentUser.getUserId())
-                    .setName(currentUser.getName())
-                    .setPhoto(currentUser.getPhoto())
-                    .setEmail(currentUser.getEmail())
-                    .setModeration(currentUser.getIsModerator() == 1)
-                    .setModerationCount(modCount)
-                    .setSettings(currentUser.getIsModerator() == 1);
-            loginResponse.setUser(userCheckDTO);
+            loginResponse.setUser(userCheckDTO(currentUser));
             return ResponseEntity.ok(loginResponse);
     }
 
     public ResponseEntity<?> getAuthCheck(String email) {
         User currentUser = userRepository.findOneByEmail(email).orElse(null);
         LoginResponse loginResponse = new LoginResponse();
-        UserCheckDTO userCheckDTO = new UserCheckDTO();
         loginResponse.setResult(true);
 
-        int modCount =
-                currentUser.getIsModerator() == 1 ? userRepository.getModerationCount(currentUser.getUserId()) : 0;
-        userCheckDTO.setId(currentUser.getUserId())
-                .setName(currentUser.getName())
-                .setPhoto(currentUser.getPhoto())
-                .setEmail(currentUser.getEmail())
-                .setModeration(currentUser.getIsModerator() == 1)
-                .setModerationCount(modCount)
-                .setSettings(currentUser.getIsModerator() == 1);
-        loginResponse.setUser(userCheckDTO);
+        loginResponse.setUser(userCheckDTO(currentUser));
         return ResponseEntity.ok(loginResponse);
+    }
+
+    public UserCheckDTO userCheckDTO (User user) {
+        UserCheckDTO userCheckDTO = new UserCheckDTO();
+        int modCount =
+                user.getIsModerator() == 1 ? userRepository.getModerationCount(user.getUserId()) : 0;
+        userCheckDTO.setId(user.getUserId())
+                .setName(user.getName())
+                .setPhoto(user.getPhoto())
+                .setEmail(user.getEmail())
+                .setModeration(user.getIsModerator() == 1)
+                .setModerationCount(modCount)
+                .setSettings(user.getIsModerator() == 1);
+
+        return userCheckDTO;
     }
 
     public ResponseEntity<?> getCaptcha() {
