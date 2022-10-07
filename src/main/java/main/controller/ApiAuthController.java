@@ -2,16 +2,21 @@ package main.controller;
 
 import lombok.AllArgsConstructor;
 import main.api.request.LoginRequest;
+import main.api.request.PasswordRequest;
+import main.api.request.RegisterRequest;
+import main.api.request.RestoreRequest;
 import main.api.response.LoginResponse;
-import main.dto.RegisterDTO;
+import main.api.response.ResultResponse;
 import main.service.AuthService;
+import main.utils.ResponseErrorValidator;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.util.ObjectUtils;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.Valid;
 import java.security.Principal;
-import java.util.HashMap;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -19,6 +24,7 @@ import java.util.Map;
 public class ApiAuthController
 {
     private final AuthService authService;
+    private final ResponseErrorValidator responseErrorValidator;
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest){
@@ -26,20 +32,32 @@ public class ApiAuthController
     }
 
     @PostMapping("/register")
-    private ResponseEntity<?> postAuthRegister(@RequestBody RegisterDTO registerDTO){
-        return authService.registration(registerDTO);
+    private ResponseEntity<?> register(@Valid @RequestBody RegisterRequest registerRequest, BindingResult result){
+        ResponseEntity<Object> errors = responseErrorValidator.mapValidationService(result);
+        if (!ObjectUtils.isEmpty(errors)) return errors;
+        return authService.registration(registerRequest);
     }
 
     @GetMapping("/logout")
     public ResponseEntity<?> logout() {
         SecurityContextHolder.getContext().setAuthentication(null);
-        Map<String, Boolean> map = new HashMap<>();
-        map.put("result", true);
-        return ResponseEntity.ok(map);
+        ResultResponse resultResponse = new ResultResponse();
+        resultResponse.setResult(true);
+        return ResponseEntity.ok(resultResponse);
+    }
+
+    @PostMapping("/restore")
+    public ResponseEntity<?> restore(@RequestBody RestoreRequest restoreRequest) {
+        return authService.restore(restoreRequest);
+    }
+
+    @PostMapping("/password")
+    private ResponseEntity<?> authPassword (@RequestBody PasswordRequest password, Principal principal) {
+        return authService.authPassword(password, principal);
     }
 
     @GetMapping("/check")
-    private ResponseEntity<?> authResponse(Principal principal) {
+    private ResponseEntity<?> authCheck(Principal principal) {
         if (principal == null) return ResponseEntity.ok(new LoginResponse());
         return authService.getAuthCheck(principal.getName());
     }

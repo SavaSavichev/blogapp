@@ -3,10 +3,7 @@ package main.facade;
 import lombok.RequiredArgsConstructor;
 import main.api.response.PostByIdResponse;
 import main.api.response.PostResponse;
-import main.dto.CommentsDTO;
-import main.dto.PostDTO;
-import main.dto.UserComDTO;
-import main.dto.UserDTO;
+import main.dto.*;
 import main.model.Comment;
 import main.model.Post;
 import main.model.User;
@@ -97,13 +94,12 @@ public class PostFacade {
     public PostByIdResponse mappingPostById(Integer postId) {
 
         PostByIdResponse postByIdResponse = new PostByIdResponse();
-
         Post post = postRepository.getOne(postId);
         post.setViewCount(post.getViewCount() + 1);
         postRepository.save(post);
         postByIdResponse.setId(post.getPostId())
-                .setTimestamp(post.getTimestamp().getTime() / 1000)
-                .setActive(true);
+                .setTimestamp(post.getTimestamp().getTime() / 1000);
+        postByIdResponse.setActive(post.getIsActive() == 1);
 
         User user = userRepository.getOne(post.getUserId());
         UserDTO userDTO = new UserDTO()
@@ -118,15 +114,15 @@ public class PostFacade {
                 .setViewCount(post.getViewCount());
 
         List<Comment> postCommentList = commentRepository.findCommentsByPostId(postId);
-        CommentsDTO commentsDTO = new CommentsDTO();
         List<CommentsDTO> commentsDTOS = new ArrayList<>();
 
         for (Comment comment : postCommentList) {
+            CommentsDTO commentsDTO = new CommentsDTO();
             commentsDTO.setId(comment.getCommentId())
                     .setTimestamp(comment.getTime().getTime() / 1000)
                     .setText(comment.getText());
             User commentUser = userRepository.findById(comment.getUserId()).orElseThrow();
-            UserComDTO userComDTO = new UserComDTO()
+            UserDTO userComDTO = new UserDTO()
                     .setId(commentUser.getUserId())
                     .setName(commentUser.getName())
                     .setPhoto(commentUser.getPhoto());

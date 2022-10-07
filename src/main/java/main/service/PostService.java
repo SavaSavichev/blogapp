@@ -1,26 +1,35 @@
 package main.service;
 
 import lombok.RequiredArgsConstructor;
-import main.api.response.CalendarResponse;
-import main.api.response.PostByIdResponse;
-import main.api.response.PostResponse;
+import main.api.request.CommentRequest;
+import main.api.request.LikeDislikeRequest;
+import main.api.request.PostRequest;
+import main.api.response.*;
 import main.facade.PostFacade;
-import main.model.Post;
-import main.model.Tag;
-import main.model.User;
+import main.model.*;
+import main.model.enums.ModerationStatus;
 import main.repository.*;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
+import java.io.IOException;
 import java.security.Principal;
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
+
+import static java.time.LocalDateTime.now;
 
 @RequiredArgsConstructor
 @Service
@@ -30,7 +39,14 @@ public class PostService {
     private final TagRepository tagRepository;
     private final Tag2PostRepository tag2PostRepository;
     private final UserRepository userRepository;
+    private final CommentRepository commentRepository;
+    private final VoteRepository voteRepository;
+    private final UserService userService;
 
+    @Value("${config.imageHeight}")
+    private Integer imageHeight;
+    @Value("${config.imageWidth}")
+    private Integer imageWidth;
     private Integer startYear = 1970;
 
     public ResponseEntity<?> getPosts(Integer offset, Integer limit, String mode) {
@@ -117,12 +133,11 @@ public class PostService {
         List<Post> sortedPost = new ArrayList<>();
         List<Post> posts = new ArrayList<>();
         if (offset > limit) {
-            return new ResponseEntity<>("Wrong input parameters!", HttpStatus.BAD_REQUEST);
+            return ResponseEntity.badRequest().body("Wrong input parameters!");
         }
-        List<Tag> tags = tagRepository.findTagByName(tag);
+        List<Tag> tags = tagRepository.findPostsByTagName(tag);
         if (tags.isEmpty()) {
-            ResponseEntity<?> responseEntity = new ResponseEntity<>("No tag " + tag + " is registered.",
-                    HttpStatus.NO_CONTENT);
+            return ResponseEntity.status(HttpStatus.NO_CONTENT).body("No tag " + tag + " is registered.");
         } else {
             int tagId = 0;
             for(Tag tag1: tags) {
@@ -146,7 +161,7 @@ public class PostService {
 
     public ResponseEntity<?> getPostById(Integer id) {
         if (postRepository.findById(id).isEmpty()) {
-            return new ResponseEntity<>("Post with ID = " + id + " not found.", HttpStatus.NOT_FOUND);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Post with ID = " + id + " not found.");
         }
         PostByIdResponse postByIdResponse = postFacade.mappingPostById(id);
         return ResponseEntity.ok(postByIdResponse);
@@ -154,7 +169,7 @@ public class PostService {
 
     public ResponseEntity<?> getMyPosts(Principal principal, Integer offset, Integer limit, String status) {
         if (offset > limit) {
-            return ResponseEntity.badRequest().body("Wrong input parameters!");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Wrong input parameters!");
         }
 
         Optional<User> user = userRepository.findOneByEmail(principal.getName());
@@ -186,6 +201,23 @@ public class PostService {
         return posts.toList();
     }
 
+    public List<Post> getSortedPostsForModeration(Integer userId, Integer offset, Integer limit, String status) {
+        Page<Post> posts;
+        PageRequest pageRequest = PageRequest.of(offset / limit, limit);
+        switch (status) {
+            case "declined":
+                posts = postRepository.getDeclinedPostsForModeration(userId, pageRequest);
+                break;
+            case "accepted":
+                posts = postRepository.getAcceptedPostForModeration(userId, pageRequest);
+                break;
+            default:
+                posts = postRepository.getNewPostForModeration(userId, pageRequest);
+                break;
+        }
+        return posts.toList();
+    }
+
     public List<Post> getSortedMyPosts(Integer userId, Integer offset, Integer limit, String status) {
         Page<Post> posts;
         PageRequest pageRequest = PageRequest.of(offset / limit, limit);
@@ -212,5 +244,199 @@ public class PostService {
         cal.setTimeInMillis(time.getTime());
         String curTime = String.valueOf(cal.get(Calendar.YEAR));
         return Integer.parseInt(curTime);
+    }
+
+    public ResponseEntity<?> createPost(PostRequest postRequest, Principal principal) {
+        User currentUser = userRepository.findOneByEmail(principal.getName()).orElse(null);
+        Post post = new Post();
+        Timestamp currentTimestamp = Timestamp.valueOf(LocalDateTime.now());
+
+        if (postRequest.getTimestamp() <= currentTimestamp.getTime() / 1000) {
+            post.setTimestamp(currentTimestamp);
+        } else {
+            post.setTimestamp(new Timestamp(postRequest.getTimestamp() * 1000));
+        }
+        assert currentUser != null;
+        post.setIsActive(postRequest.getActive())
+                .setTitle(postRequest.getTitle().replaceAll("<(.*?)>","" ).replaceAll("[\\p{P}\\p{S}]", ""))
+                .setModerationStatus(ModerationStatus.NEW)
+                .setText(postRequest.getText())
+                .setUserId(currentUser.getUserId())
+                .setViewCount(0);
+        List<Integer> moderatorIds = userRepository.getModeratorIds();
+        int moderatorId = moderatorIds.get((int)(Math.random() * moderatorIds.size()));
+        post.setModeratorId(moderatorId);
+
+        postRepository.save(post);
+        saveTags(post, postRequest);
+        ResultResponse resultResponse = new ResultResponse();
+        resultResponse.setResult(true);
+
+        return ResponseEntity.ok(resultResponse);
+    }
+
+    public ResponseEntity<?> putPost(int id, PostRequest postRequest) {
+        Optional<Post> postOptional = postRepository.findById(id);
+        ResultResponse resultResponse = new ResultResponse();
+        resultResponse.setResult(false);
+        if (postOptional.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(resultResponse);
+        }
+        Post post = postOptional.get();
+        User user = userRepository.getOne(post.getUserId());
+        post.setText(postRequest.getText())
+                .setTitle(postRequest.getTitle())
+                .setIsActive(postRequest.getActive());
+        long currentTime = Instant.now().toEpochMilli();
+        if (postRequest.getTimestamp() <= currentTime) {
+            post.setTimestamp(new Timestamp(currentTime));
+        }
+        if (user.getIsModerator() != 1) {
+            post.setModerationStatus(ModerationStatus.NEW);
+        }
+        postRepository.save(post);
+        saveTags(post, postRequest);
+        ResultResponse response = new ResultResponse();
+        response.setResult(true);
+        return ResponseEntity.ok(response);
+    }
+
+    private void saveTags(Post post, PostRequest postRequest) {
+        for (String tag : postRequest.getTags()) {
+            Tag tagModel = tagRepository.findTagByName(tag).orElse(null);
+            if(tagModel == null) {
+                tagModel = new Tag();
+                tagModel.setName(tag);
+                tagRepository.save(tagModel);
+            }
+            Tag2Post tag2Post = new Tag2Post();
+            tag2Post.setPostId(post.getPostId());
+            tag2Post.setTagId(tagModel.getId());
+            tag2PostRepository.save(tag2Post);
+        }
+    }
+
+    public ResponseEntity<?> postComment(CommentRequest commentRequest, Principal principal) {
+        User user = userRepository.findOneByEmail(principal.getName()).orElse(null);
+        assert user != null;
+        Integer userId = user.getUserId();
+        Integer postId = commentRequest.getPostId();
+        Comment postComment = new Comment();
+
+            if (commentRequest.getParentId() != null) {
+                postComment.setParent_id(commentRequest.getParentId());
+            }
+            postComment.setPost_id(postId);
+            postComment.setPost(postRepository.getOne(postId));
+            postComment.setText(commentRequest.getText());
+            postComment.setTime(Timestamp.valueOf(now()));
+            postComment.setUserId(userId);
+            commentRepository.saveAndFlush(postComment);
+
+        ResultResponse response = new ResultResponse();
+        response.setId(postComment.getCommentId());
+
+        return ResponseEntity.ok(response);
+    }
+
+    public ResponseEntity<?> postLikeDislike(LikeDislikeRequest likeDislikeRequest, Principal principal, Integer value) {
+        Vote vote;
+        User user = userRepository.findOneByEmail(principal.getName()).orElse(null);
+        assert user != null;
+        Integer userId = user.getUserId();
+        Integer postId = likeDislikeRequest.getPostId();
+        Optional<Vote> postVoteOptional = voteRepository.getOneByPostAndUser(postId, userId);
+        ResultResponse resultResponse = new ResultResponse();
+
+        if (postVoteOptional.isPresent()) {
+            if (postVoteOptional.get().getValue().equals(value)) {
+                resultResponse.setResult(false);
+            } else {
+                vote = postVoteOptional.get();
+                vote.setValue(value);
+                voteRepository.save(vote);
+                resultResponse.setResult(true);
+            }
+            return ResponseEntity.ok(resultResponse);
+        }
+        Vote newVote = createPostVote(postId, value, userId);
+        voteRepository.save(newVote);
+        resultResponse.setResult(true);
+        return ResponseEntity.ok(resultResponse);
+    }
+
+    private Vote createPostVote(Integer postId, Integer value, Integer userId) {
+        Vote postVote = new Vote();
+        postVote.setPost(postRepository.getOne(postId));
+        postVote.setPostId(postId);
+        postVote.setTime(Timestamp.valueOf(now()));
+        postVote.setUserId(userId);
+        postVote.setValue(value);
+        return postVote;
+    }
+
+    public ResponseEntity<?> postImage(MultipartFile image) throws IOException {
+        int maxImageSize = 1_000_000;
+        Map<String, Object> errors = new LinkedHashMap<>();
+        Map<String, Object> responseMap = new LinkedHashMap<>();
+
+            if (image.getSize() <= maxImageSize) {
+                File convertedFile = userService.saveImage(image, imageHeight, imageWidth);
+                String photoDestination = StringUtils.cleanPath(convertedFile.getPath());
+                if (!photoDestination.endsWith("jpg") && !photoDestination.endsWith("png")) {
+                    errors.put("image", "Wrong format of the photo!");
+                    responseMap.put("result", false);
+                    responseMap.put("errors", errors);
+
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseMap);
+                }
+                return ResponseEntity.ok("/" + photoDestination);
+            } else {
+                errors.put("image", "Размер файла превышает допустимый размер");
+                responseMap.put("result", false);
+                responseMap.put("errors", errors);
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseMap);
+            }
+    }
+
+    public ResponseEntity<?> updateModeration(Integer postId, String decision, Principal principal) {
+        ResultResponse resultResponse = new ResultResponse();
+        Optional<User> currentUser = userRepository.findOneByEmail(principal.getName());
+        User user = currentUser.get();
+        if (user.getIsModerator() == 1) {
+            Optional<Post> optionalPost = postRepository.findById(postId);
+
+            if (optionalPost.isEmpty()) {
+                resultResponse.setResult(false);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(resultResponse);
+            }
+            Post post = optionalPost.get();
+            if (decision.equals("accept")) {
+                post.setModerationStatus(ModerationStatus.ACCEPTED);
+                post.setModeratorId(user.getUserId());
+                postRepository.save(post);
+                resultResponse.setResult(true);
+            } else if (decision.equals("decline")) {
+                post.setModerationStatus(ModerationStatus.DECLINED);
+                post.setModeratorId(user.getUserId());
+                postRepository.save(post);
+                resultResponse.setResult(true);
+            }
+        } else {
+            resultResponse.setResult(false);
+        }
+        return ResponseEntity.ok(resultResponse);
+    }
+
+    public ResponseEntity<?> getPostsForModeration(Integer offset, Integer limit, String status, Principal principal) {
+        if (offset > limit) {
+            return ResponseEntity.badRequest().body("Wrong input parameters!");
+        }
+        Optional<User> currentUser = userRepository.findOneByEmail(principal.getName());
+        User user = currentUser.get();
+
+        List<Post> posts = getSortedPostsForModeration(user.getUserId(), offset, limit, status);
+        PostResponse postResponse = postFacade.mappingPostResponse(posts, offset, limit);
+        return ResponseEntity.ok(postResponse);
     }
 }

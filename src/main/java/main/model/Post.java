@@ -2,6 +2,7 @@ package main.model;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
 import main.model.enums.ModerationStatus;
 import org.hibernate.annotations.LazyCollection;
 import org.hibernate.annotations.LazyCollectionOption;
@@ -14,6 +15,7 @@ import java.util.Collection;
 
 @Data
 @NoArgsConstructor
+@Accessors(chain = true)
 @Entity
 @Table(name = "posts")
 public class Post implements Serializable {

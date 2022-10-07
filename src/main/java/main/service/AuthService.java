@@ -4,9 +4,15 @@ import com.github.cage.Cage;
 import com.github.cage.GCage;
 import lombok.RequiredArgsConstructor;
 import main.api.request.LoginRequest;
+import main.api.request.PasswordRequest;
+import main.api.request.RegisterRequest;
+import main.api.request.RestoreRequest;
+import main.api.response.CaptchaResponse;
 import main.api.response.LoginResponse;
-import main.dto.RegisterDTO;
-import main.dto.UserCheckDTO;
+import main.api.response.ResultResponse;
+import main.config.SecurityConfig;
+
+import main.dto.UserDTO;
 import main.model.CaptchaCode;
 import main.model.User;
 import main.repository.CaptchaRepository;
@@ -15,6 +21,9 @@ import org.apache.commons.io.FileUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mail.MailSendException;
+import org.springframework.mail.MailSender;
+import org.springframework.mail.SimpleMailMessage;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -25,6 +34,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.security.Principal;
 import java.security.SecureRandom;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
@@ -38,6 +48,8 @@ public class AuthService {
     private final CaptchaRepository captchaRepository;
     private final UserRepository userRepository;
     private final AuthenticationManager authenticationManager;
+    private final MailSender mailSender;
+    private final SecurityConfig securityConfig;
 
     private boolean result;
     @Value("${config.nameLength}")
@@ -47,37 +59,30 @@ public class AuthService {
     @Value("${config.passwordMaxLength}")
     private Integer passMaxLength;
 
-    public ResponseEntity<?> registration(RegisterDTO registerDTO) {
-        Optional<CaptchaCode> captchaCode = captchaRepository.findBySecretCode(registerDTO.getCaptchaSecret());
-        Optional<User> userOptional = userRepository.findOneByEmail(registerDTO.getEmail());
+    public ResponseEntity<?> registration(RegisterRequest registerRequest) {
+        Optional<CaptchaCode> captchaCode = captchaRepository.findBySecretCode(registerRequest.getCaptchaSecret());
+        Optional<User> userOptional = userRepository.findOneByEmail(registerRequest.getEmail());
         Map<String, String> errors = new LinkedHashMap<>();
         Map<String, Object> regResult = new HashMap<>();
         User user = new User();
 
         result = true;
+
         if (userOptional.isPresent()) {
             errors.put("email", "Этот e-mail уже зарегистрирован!");
             result = false;
         }
-        if (registerDTO.getName().length() > nameLength) {
-            errors.put("name", "Ошибка: длина имени превышает 25 знаков!");
-            result = false;
-        }
-        if (registerDTO.getPassword().length() < passMinLength || registerDTO.getPassword().length() > passMaxLength) {
-            errors.put("password", "Пароль имеет недопустимую длину!");
-            result = false;
-        }
         if(captchaCode.isPresent()) {
-            if(!registerDTO.getCaptcha().equals(captchaCode.get().getCode())) {
+            if(!registerRequest.getCaptcha().equals(captchaCode.get().getCode())) {
                 errors.put("captcha", "Код с картинки введён неверно!");
                 result = false;
             }
         }
         if (result) {
             String code = generateCode(16);
-            user.setEmail(registerDTO.getEmail())
-                    .setName(registerDTO.getName())
-                    .setPassword(registerDTO.getPassword())
+            user.setEmail(registerRequest.getEmail())
+                    .setName(registerRequest.getName())
+                    .setPassword(securityConfig.passwordEncoder().encode(registerRequest.getPassword()))
                     .setRegTime(Timestamp.valueOf(LocalDateTime.now()))
                     .setCode(code)
                     .setIsModerator(0);
@@ -112,12 +117,13 @@ public class AuthService {
         LoginResponse loginResponse = new LoginResponse();
         loginResponse.setResult(true);
 
+        assert currentUser != null;
         loginResponse.setUser(userCheckDTO(currentUser));
         return ResponseEntity.ok(loginResponse);
     }
 
-    public UserCheckDTO userCheckDTO (User user) {
-        UserCheckDTO userCheckDTO = new UserCheckDTO();
+    public UserDTO userCheckDTO (User user) {
+        UserDTO userCheckDTO = new UserDTO();
         int modCount =
                 user.getIsModerator() == 1 ? userRepository.getModerationCount(user.getUserId()) : 0;
         userCheckDTO.setId(user.getUserId())
@@ -137,7 +143,6 @@ public class AuthService {
         String code = cage.getTokenGenerator().next();
         String code64 = "";
         CaptchaCode captcha = new CaptchaCode();
-        Map<String, String> map = new LinkedHashMap<>();
         try (OutputStream os = new FileOutputStream("image.png", false)) {
             cage.draw(code, os);
             byte[] fileContent = FileUtils.readFileToByteArray(new File("image.png"));
@@ -150,10 +155,11 @@ public class AuthService {
         Timestamp timestamp = Timestamp.valueOf(LocalDateTime.now());
         captcha.setTimestamp(timestamp);
         captchaRepository.save(captcha);
-        map.put("secret", secretCode);
-        map.put("image", "data:image/png;base64, " + code64);
+        CaptchaResponse captchaResponse = new CaptchaResponse();
+        captchaResponse.setSecret(secretCode);
+        captchaResponse.setImage("data:image/png;base64, " + code64);
         deleteOldCaptchas();
-        return new ResponseEntity<>(map, HttpStatus.OK);
+        return ResponseEntity.ok(captchaResponse);
     }
 
     private void deleteOldCaptchas() {
@@ -164,12 +170,56 @@ public class AuthService {
     }
 
     private String generateCode(int length) {
-        final String pattern = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+        final String pattern = "0123456789abcdefghijklmnopqrstuvwxyz";
         SecureRandom rnd = new SecureRandom();
         StringBuilder stringBuilder = new StringBuilder(length);
         for (int i = 0; i < length; i++) {
             stringBuilder.append(pattern.charAt(rnd.nextInt(pattern.length())));
         }
         return stringBuilder.toString();
+    }
+
+    public ResponseEntity<?> restore(RestoreRequest restoreRequest) {
+        ResultResponse resultResponse = new ResultResponse();
+        resultResponse.setResult(false);
+        Optional<User> optionalUser = userRepository.findOneByEmail(restoreRequest.getEmail());
+            if (optionalUser.isPresent())
+            {
+                String code = generateCode(16);
+                User user = optionalUser.get();
+                user.setCode(code);
+                userRepository.save(user);
+                String text = "/login/change-password/" + code;
+                SimpleMailMessage simpleMailMessage = new SimpleMailMessage();
+                simpleMailMessage.setFrom("a.savichev13@gmail.com");
+                simpleMailMessage.setTo(restoreRequest.getEmail());
+                simpleMailMessage.setSubject("Восстановление пароля DevPub");
+                simpleMailMessage.setText(text);
+                try {
+                    mailSender.send(simpleMailMessage);
+                } catch (MailSendException ex) {
+                    ex.printStackTrace();
+                    return ResponseEntity.badRequest().body(resultResponse);
+                }
+                resultResponse.setResult(true);
+                return ResponseEntity.ok(resultResponse);
+            }
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(resultResponse);
+    }
+
+    public ResponseEntity<?> authPassword (PasswordRequest password, Principal principal) {
+        User user = userRepository.findOneByEmail(principal.getName()).orElse(null);
+        ResultResponse resultResponse = new ResultResponse();
+        assert user != null;
+        if(user.getCode().equals(password.getCode()) && password.getCaptcha().equals(captchaRepository.findAll().stream().findAny().orElse(new CaptchaCode()).getCode())
+                && password.getCaptchaSecret().equals(captchaRepository.findAll().stream().findAny().orElse(new CaptchaCode()).getSecretCode())) {
+            user.setPassword(securityConfig.passwordEncoder().encode(password.getPassword()));
+            userRepository.save(user);
+            resultResponse.setResult(true);
+            return ResponseEntity.ok(resultResponse);
+        } else {
+            resultResponse.setResult(false);
+            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(resultResponse);
+        }
     }
 }

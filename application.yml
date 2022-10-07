@@ -9,7 +9,7 @@ blog:
     title: DevPub
     subtitle: Рассказы разработчиков
     phone: +7 903 666-44-55
-    email: mail@mail.ru
+    email: artem.savichev@mail.ru
     copyright: Артем Савичев
     copyrightFrom: 2022
 
@@ -17,3 +17,14 @@ config:
   nameLength: 25
   passwordMinLength: 6
   passwordMaxLength: 12
+  avatarWidth: 36
+  avatarHeight: 36
+  imageHeight: 480
+  imageWidth: 640
+  maxImageSize: 3000000
+
+mail:
+  host: smtp.gmail.com
+  port: 587
+  username: a.savichev13@gmail.com
+  password: icxixzyxdxvnadnn

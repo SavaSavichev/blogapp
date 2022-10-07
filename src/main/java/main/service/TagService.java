@@ -26,7 +26,7 @@ public class TagService {
         List<Tag> tags = tagRepository.findAll();
         List<String> tagNames = tags.stream().map(Tag::getName).collect(Collectors.toList());
         Map<String, List<TagResponse>> tagsMap = getTagMap(tagNames);
-        return new ResponseEntity<>(tagsMap, HttpStatus.OK);
+        return ResponseEntity.ok(tagsMap);
     }
 
     private Map<String, List<TagResponse>> getTagMap(List<String> tagNameList) {

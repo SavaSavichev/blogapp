@@ -30,6 +30,9 @@ public interface PostRepository extends JpaRepository<Post, Integer> {
     @Query("FROM Post p WHERE p.userId = ?1")
     List<Post> findAllPostsByUserId (Integer userId);
 
+    @Query("FROM Post p WHERE p.userId = ?1 AND p.isActive = 1 AND p.moderationStatus = 'ACCEPTED'")
+    List<Post> findAllActivePostsByUserId(Integer userId);
+
     List<Post> findByTextContaining(String text);
 
     @Query("FROM Post p WHERE p.userId = ?1 AND p.isActive = 0 ORDER BY p.timestamp DESC")
@@ -43,5 +46,14 @@ public interface PostRepository extends JpaRepository<Post, Integer> {
 
     @Query("FROM Post p WHERE p.userId = ?1 AND p.isActive = 1 AND p.moderationStatus = 'ACCEPTED' ORDER BY p.timestamp DESC")
     Page<Post> getPublishedPosts(Integer userId, PageRequest pageRequest);
+
+    @Query("FROM Post p WHERE p.moderatorId = ?1 AND p.isActive = 1 AND p.moderationStatus = 'NEW' ORDER BY p.timestamp DESC")
+    Page<Post> getNewPostForModeration(Integer userId, PageRequest pageRequest);
+
+    @Query("FROM Post p WHERE p.moderatorId = ?1 AND p.isActive = 1 AND p.moderationStatus = 'ACCEPTED' ORDER BY p.timestamp DESC")
+    Page<Post> getAcceptedPostForModeration(Integer userId, PageRequest pageRequest);
+
+    @Query("FROM Post p WHERE p.moderatorId = ?1 AND p.isActive = 1 AND p.moderationStatus = 'DECLINED' ORDER BY p.timestamp DESC")
+    Page<Post> getDeclinedPostsForModeration(Integer userId, PageRequest pageRequest);
 }
 
