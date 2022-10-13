@@ -16,18 +16,12 @@
         <maven.compiler.target>11</maven.compiler.target>
     </properties>
 
-
     <build>
         <plugins>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>2.22.0</version>
-            </plugin>
-            <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
-                <version>2.3.1.RELEASE</version>
+                <version>2.2.3.RELEASE</version>
                 <executions>
                     <execution>
                         <goals>
@@ -39,11 +33,6 @@
                                 <encoding.reporting>${project.reporting.outputEncoding}</encoding.reporting>
                                 <java.source>${maven.compiler.source}</java.source>
                                 <java.target>${maven.compiler.target}</java.target>
-<!--                                <path>-->
-<!--                                    <groupId>org.projectlombok</groupId>-->
-<!--                                    <artifactId>lombok</artifactId>-->
-<!--                                    <version>1.18.20</version>-->
-<!--                                </path>-->
                             </additionalProperties>
                         </configuration>
                     </execution>
@@ -51,6 +40,42 @@
             </plugin>
         </plugins>
     </build>
+
+
+<!--    <build>-->
+<!--        <plugins>-->
+<!--            <plugin>-->
+<!--                <groupId>org.apache.maven.plugins</groupId>-->
+<!--                <artifactId>maven-surefire-plugin</artifactId>-->
+<!--                <version>2.22.0</version>-->
+<!--            </plugin>-->
+<!--            <plugin>-->
+<!--                <groupId>org.springframework.boot</groupId>-->
+<!--                <artifactId>spring-boot-maven-plugin</artifactId>-->
+<!--                <version>2.3.1.RELEASE</version>-->
+<!--                <executions>-->
+<!--                    <execution>-->
+<!--                        <goals>-->
+<!--                            <goal>build-info</goal>-->
+<!--                        </goals>-->
+<!--                        <configuration>-->
+<!--                            <additionalProperties>-->
+<!--                                <encoding.source>${project.build.sourceEncoding}</encoding.source>-->
+<!--                                <encoding.reporting>${project.reporting.outputEncoding}</encoding.reporting>-->
+<!--                                <java.source>${maven.compiler.source}</java.source>-->
+<!--                                <java.target>${maven.compiler.target}</java.target>-->
+<!--&lt;!&ndash;                                <path>&ndash;&gt;-->
+<!--&lt;!&ndash;                                    <groupId>org.projectlombok</groupId>&ndash;&gt;-->
+<!--&lt;!&ndash;                                    <artifactId>lombok</artifactId>&ndash;&gt;-->
+<!--&lt;!&ndash;                                    <version>1.18.20</version>&ndash;&gt;-->
+<!--&lt;!&ndash;                                </path>&ndash;&gt;-->
+<!--                            </additionalProperties>-->
+<!--                        </configuration>-->
+<!--                    </execution>-->
+<!--                </executions>-->
+<!--            </plugin>-->
+<!--        </plugins>-->
+<!--    </build>-->
 
 <!--    <build>-->
 <!--        <plugins>-->
