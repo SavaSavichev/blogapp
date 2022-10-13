@@ -33,11 +33,11 @@
                                 <encoding.reporting>${project.reporting.outputEncoding}</encoding.reporting>
                                 <java.source>${maven.compiler.source}</java.source>
                                 <java.target>${maven.compiler.target}</java.target>
-                                <path>
-                                    <groupId>org.projectlombok</groupId>
-                                    <artifactId>lombok</artifactId>
-                                    <version>1.18.20</version>
-                                </path>
+<!--                                <path>-->
+<!--                                    <groupId>org.projectlombok</groupId>-->
+<!--                                    <artifactId>lombok</artifactId>-->
+<!--                                    <version>1.18.20</version>-->
+<!--                                </path>-->
                             </additionalProperties>
                         </configuration>
                     </execution>
