@@ -11,6 +11,7 @@ import java.io.IOException;
 @RequestMapping("/{folder}/{dir1}/{dir2}/{dir3}/{filename}")
 @RequiredArgsConstructor
 public class ApiAvatarController {
+
     private final UserService userService;
 
     @GetMapping("")

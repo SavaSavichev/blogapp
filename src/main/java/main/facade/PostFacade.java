@@ -51,12 +51,10 @@ public class PostFacade {
         PostResponse postResponse = new PostResponse();
         postResponse.setCount(posts.size());
         postResponse.setPosts(getOffsetLimit(postDTOS, offset, limit));
-
         return postResponse;
     }
 
     public PostResponse mappingPostSearchResponse(List<Post> posts, Integer offset, Integer limit) {
-
         Timestamp timestamp = new Timestamp(System.currentTimeMillis());
         List<PostDTO> postDTOS = new ArrayList<>();
         List<Post> sortedPosts = new ArrayList<>();
@@ -78,7 +76,8 @@ public class PostFacade {
                     .setName(user.getName());
             postDTO.setUser(userDTO)
                     .setTitle(post.getTitle())
-                    .setAnnounce(post.getAnnounce().replaceAll("<(.*?)>", "").replaceAll("[\\p{P}\\p{S}]", ""))
+                    .setAnnounce(post.getAnnounce().replaceAll("<(.*?)>", "")
+                            .replaceAll("[\\p{P}\\p{S}]", ""))
                     .setLikeCount(likeCount(post))
                     .setDislikeCount(dislikeCount(post))
                     .setCommentCount(commentRepository.getCommentCountByPostId(post.getPostId()))
@@ -92,7 +91,6 @@ public class PostFacade {
     }
 
     public PostByIdResponse mappingPostById(Integer postId) {
-
         PostByIdResponse postByIdResponse = new PostByIdResponse();
         Post post = postRepository.getOne(postId);
         post.setViewCount(post.getViewCount() + 1);
@@ -154,8 +152,7 @@ public class PostFacade {
         return voteRepository.findCountVotesByPostId(post.getPostId(), -1).orElse(0);
     }
 
-    public List<PostDTO> getOffsetLimit(List<PostDTO> list,
-                                        Integer offset, Integer limit) {
+    public List<PostDTO> getOffsetLimit(List<PostDTO> list, Integer offset, Integer limit) {
         List<PostDTO> listResult;
         if (offset > list.size() || offset > limit) {
             return new ArrayList<>();

@@ -5,22 +5,23 @@ import main.api.response.TagResponse;
 import main.model.Post;
 import main.model.Tag;
 import main.repository.PostRepository;
+import main.repository.Tag2PostRepository;
 import main.repository.TagRepository;
-import org.springframework.http.HttpStatus;
+import org.apache.commons.math3.util.Precision;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 @AllArgsConstructor
 @Service
 public class TagService {
+
     private final PostRepository postRepository;
     private final TagRepository tagRepository;
+    private final Tag2PostRepository tag2PostRepository;
 
     public ResponseEntity<?> getTag() {
         List<Tag> tags = tagRepository.findAll();
@@ -29,20 +30,42 @@ public class TagService {
         return ResponseEntity.ok(tagsMap);
     }
 
+    public ResponseEntity<?> getTag(String query) {
+        Map<String, List<TagResponse>> tagsResponseMap;
+        List<String> tagsList;
+        if (query.contains(",")) {
+            tagsList = List.of(query.split(","));
+            List<String> tagsCleaned = tagsList.stream().map(String::trim).collect(Collectors.toList());
+            tagsResponseMap = getTagMap(tagsCleaned);
+        } else {
+            tagsList = List.of(query);
+            tagsResponseMap = getTagMap(tagsList);
+        }
+        return ResponseEntity.ok(tagsResponseMap);
+    }
+
     private Map<String, List<TagResponse>> getTagMap(List<String> tagNameList) {
-        List<Post> postList = (List<Post>) postRepository.findAllActivePosts();
         int count = getCount();
-        List<Integer> postsPerTagList = new ArrayList<>();
-        for (String t : tagNameList) {
-            postsPerTagList.add((int) postList.stream().filter(p -> p.getText().contains(t)).count());
-        }
-        int maxPostsPerTag = postsPerTagList.stream().max(Comparator.naturalOrder()).orElse(count);
-        List<Double> partialWeights = postsPerTagList.stream().map(t -> (double) t / maxPostsPerTag)
+        List<Integer> postPerTagList = new ArrayList<>();
+        List<Double> partialWeights = new ArrayList<>();
+
+        tagNameList.stream().map(tagRepository::findTagByName)
+                .mapToInt(tag -> tag.get().getId())
+                .map(tagId -> tag2PostRepository.findPostIdByTagId(tagId).size())
+                .forEach(postToTagCount -> {
+            postPerTagList.add((postToTagCount));
+            double nNWeight = (double) postToTagCount / count;
+            partialWeights.add(nNWeight);
+        });
+        int maxPostsPerTag = postPerTagList.stream().max(Comparator.naturalOrder()).orElse(count);
+        double k = 1 / ((double) maxPostsPerTag / count);
+
+        List<Double> tagWeightsList = partialWeights.stream().mapToDouble(nw -> nw * k).boxed()
                 .collect(Collectors.toList());
-        List<TagResponse> tagResponseList = new ArrayList<>();
-        for (int i = 0; i < partialWeights.size(); i++) {
-            tagResponseList.add(new TagResponse(tagNameList.get(i), partialWeights.get(i)));
-        }
+
+        List<TagResponse> tagResponseList = IntStream.range(0, tagWeightsList.size())
+                .mapToObj(i -> new TagResponse(tagNameList.get(i), Precision.round(tagWeightsList.get(i), 2)))
+                .collect(Collectors.toList());
         return Map.of("tags", tagResponseList);
     }
 

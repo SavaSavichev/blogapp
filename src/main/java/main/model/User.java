@@ -35,13 +35,12 @@ public class User {
     private String email;
 
     private String password;
-
     private String code;
 
     @Nullable
     private String photo;
 
-    public Role getRole(){
+    public Role getRole() {
         return isModerator == 1 ? Role.MODERATOR : Role.USER;
     }
 }

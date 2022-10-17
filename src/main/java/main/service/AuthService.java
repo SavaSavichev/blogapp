@@ -63,7 +63,7 @@ public class AuthService {
         Optional<CaptchaCode> captchaCode = captchaRepository.findBySecretCode(registerRequest.getCaptchaSecret());
         Optional<User> userOptional = userRepository.findOneByEmail(registerRequest.getEmail());
         Map<String, String> errors = new LinkedHashMap<>();
-        Map<String, Object> regResult = new HashMap<>();
+        ResultResponse resultResponse = new ResultResponse();
         User user = new User();
 
         result = true;
@@ -72,7 +72,15 @@ public class AuthService {
             errors.put("email", "Этот e-mail уже зарегистрирован!");
             result = false;
         }
-        if(captchaCode.isPresent()) {
+        if (registerRequest.getName().length() > nameLength) {
+            errors.put("name", "Длина имени превышает допустимую длину!");
+            result = false;
+        }
+        if (registerRequest.getPassword().length() < passMinLength || registerRequest.getPassword().length() > passMaxLength) {
+            errors.put("password", "Пароль имеет недопустимую длину!");
+            result = false;
+        }
+        if (captchaCode.isPresent()) {
             if(!registerRequest.getCaptcha().equals(captchaCode.get().getCode())) {
                 errors.put("captcha", "Код с картинки введён неверно!");
                 result = false;
@@ -87,12 +95,12 @@ public class AuthService {
                     .setCode(code)
                     .setIsModerator(0);
             userRepository.save(user);
-            regResult.put("result", Boolean.TRUE);
-            return ResponseEntity.ok(regResult);
+            resultResponse.setResult(true);
+            return ResponseEntity.ok(resultResponse);
         } else {
-            regResult.put("result", Boolean.FALSE);
-            regResult.put("errors", errors);
-            return ResponseEntity.badRequest().body(regResult);
+            resultResponse.setResult(false);
+            resultResponse.setErrors(errors);
+            return ResponseEntity.badRequest().body(resultResponse);
         }
     }
 
@@ -183,8 +191,7 @@ public class AuthService {
         ResultResponse resultResponse = new ResultResponse();
         resultResponse.setResult(false);
         Optional<User> optionalUser = userRepository.findOneByEmail(restoreRequest.getEmail());
-            if (optionalUser.isPresent())
-            {
+            if (optionalUser.isPresent()) {
                 String code = generateCode(16);
                 User user = optionalUser.get();
                 user.setCode(code);
@@ -211,7 +218,8 @@ public class AuthService {
         User user = userRepository.findOneByEmail(principal.getName()).orElse(null);
         ResultResponse resultResponse = new ResultResponse();
         assert user != null;
-        if(user.getCode().equals(password.getCode()) && password.getCaptcha().equals(captchaRepository.findAll().stream().findAny().orElse(new CaptchaCode()).getCode())
+        if (user.getCode().equals(password.getCode())
+                && password.getCaptcha().equals(captchaRepository.findAll().stream().findAny().orElse(new CaptchaCode()).getCode())
                 && password.getCaptchaSecret().equals(captchaRepository.findAll().stream().findAny().orElse(new CaptchaCode()).getSecretCode())) {
             user.setPassword(securityConfig.passwordEncoder().encode(password.getPassword()));
             userRepository.save(user);

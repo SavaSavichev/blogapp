@@ -20,6 +20,7 @@ import java.security.Principal;
 @RequestMapping(value = "/api", produces = MediaType.APPLICATION_JSON_VALUE)
 @AllArgsConstructor
 public class ApiGeneralController {
+
     private final InitResponse initResponse;
     private final TagService tagService;
     private final SettingsService settingsService;
@@ -42,6 +43,11 @@ public class ApiGeneralController {
         return settingsService.updateSettings(settings, principal);
     }
 
+    @GetMapping("/tag/{query}")
+    private ResponseEntity<?> getTag(@PathVariable("query") String query) {
+        return tagService.getTag(query);
+    }
+
     @GetMapping("/tag")
     private ResponseEntity<?> getTag() {
         return tagService.getTag();
@@ -58,8 +64,9 @@ public class ApiGeneralController {
     }
 
     @PostMapping("/moderation")
-    private ResponseEntity<?> moderation(@RequestBody PostModerationRequest postModerationRequest, Principal principal)
-    {
-        return postService.updateModeration(postModerationRequest.getId(), postModerationRequest.getDecision(), principal);
+    private ResponseEntity<?> moderation(@RequestBody PostModerationRequest postModerationRequest,
+                                         Principal principal) {
+        return postService.updateModeration(postModerationRequest.getId(),
+                postModerationRequest.getDecision(), principal);
     }
 }

@@ -39,6 +39,7 @@ public class Post implements Serializable {
 
     Timestamp timestamp;
     String title;
+
     @Column(columnDefinition = "text")
     String text;
 
@@ -66,8 +67,8 @@ public class Post implements Serializable {
         if( postText == null){
             return "";
         }
-
-        String announce = postText.replaceAll("<(.*?)>","" ).replaceAll("[\\p{P}\\p{S}]", "");
+        String announce = postText.replaceAll("<(.*?)>","" )
+                .replaceAll("[\\p{P}\\p{S}]", "");
         announce = announce.substring(0, Math.min(150, announce.length())) + "...";
         return announce;
     }

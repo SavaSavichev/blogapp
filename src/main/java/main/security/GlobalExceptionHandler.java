@@ -16,8 +16,11 @@ import javax.servlet.http.HttpServletResponse;
 @RestControllerAdvice
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
-    @ExceptionHandler({AuthenticationException.class, MissingCsrfTokenException.class, InvalidCsrfTokenException.class, SessionAuthenticationException.class})
-    public ResponseEntity<?> handleAuthenticationException(RuntimeException ex, HttpServletRequest request, HttpServletResponse response){
+    @ExceptionHandler({AuthenticationException.class, MissingCsrfTokenException.class,
+            InvalidCsrfTokenException.class, SessionAuthenticationException.class})
+    public ResponseEntity<?> handleAuthenticationException(RuntimeException ex,
+                                                           HttpServletRequest request,
+                                                           HttpServletResponse response) {
         LoginResponse loginResponse = new LoginResponse();
         return ResponseEntity.ok(loginResponse);
     }

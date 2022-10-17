@@ -14,11 +14,8 @@ public class CaptchaCode {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Integer id;
-
     private String code;
-
     @Column(name = "secret_code")
     private String secretCode;
-
     private Timestamp timestamp;
 }

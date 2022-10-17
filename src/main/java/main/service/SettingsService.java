@@ -17,6 +17,7 @@ import java.security.Principal;
 @RequiredArgsConstructor
 @Service
 public class SettingsService {
+
     private GlobalSettings globalSettings;
     private final GlobalSettingsRepository globalSettingsRepository;
     private final UserRepository userRepository;
@@ -38,14 +39,14 @@ public class SettingsService {
         Integer userId = user.getUserId();
 
         globalSettings = new GlobalSettings();
-        if(userRepository.getOne(userId).getIsModerator() == 1) {
-                globalSettingsRepository.deleteAll();
-                globalSettings.setMultiuserMode(settingsRequest.isMultiuserMode())
+        if (userRepository.getOne(userId).getIsModerator() == 1) {
+            globalSettingsRepository.deleteAll();
+            globalSettings.setMultiuserMode(settingsRequest.isMultiuserMode())
                         .setPostPremoderation(settingsRequest.isPostPremoderation())
                         .setStatisticsIsPublic(settingsRequest.isStatisticsIsPublic());
-                globalSettingsRepository.save(globalSettings);
+            globalSettingsRepository.save(globalSettings);
 
-                return getSettings();
+            return getSettings();
         } else {
             ResultResponse resultResponse = new ResultResponse();
             resultResponse.setResult(false);

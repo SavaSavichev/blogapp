@@ -23,11 +23,11 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Service
 public class StatisticsService {
+
     private final UserRepository userRepository;
     private final PostRepository postRepository;
     private final VoteRepository voteRepository;
     private final GlobalSettingsRepository globalSettingsRepository;
-
 
     public ResponseEntity<?> getMyStatistics(Principal principal) {
         User user = userRepository.findOneByEmail(principal.getName()).orElse(null);
@@ -38,7 +38,7 @@ public class StatisticsService {
         Optional<User> userOptional = userRepository.findById(id);
         if (userOptional.isPresent()) {
             int postsCount = postRepository.findAllActivePostsByUserId(id).size();
-            if(postsCount == 0) {
+            if (postsCount == 0) {
                 statisticsResponse.setPostsCount(0)
                         .setLikesCount(0)
                         .setDislikesCount(0)
@@ -47,16 +47,13 @@ public class StatisticsService {
                 return ResponseEntity.ok(statisticsResponse);
             }
             int postsLikeCount = (int) voteRepository.findAllPostVotesByUserId(id).stream().
-                    filter(pv -> pv.getValue() == 1).
-                    count();
+                    filter(pv -> pv.getValue() == 1).count();
             int postsDislikeCount = (int) voteRepository.findAllPostVotesByUserId(id).stream().
-                    filter(pv -> pv.getValue() == -1).
-                    count();
+                    filter(pv -> pv.getValue() == -1).count();
             int viewPostsCount = voteRepository.findAllPostVotesByUserId(id).size();
             List<Timestamp> localDates = postRepository.findAllPostsByUserId(id).stream().
                     map(Post::getTimestamp).collect(Collectors.toList());
-            Timestamp minLocalDate = localDates.stream()
-                    .min(Comparator.naturalOrder()).get();
+            Timestamp minLocalDate = localDates.stream().min(Comparator.naturalOrder()).get();
 
             statisticsResponse.setPostsCount(postsCount)
                     .setLikesCount(postsLikeCount)
@@ -71,20 +68,15 @@ public class StatisticsService {
         StatisticsResponse statisticsResponse = new StatisticsResponse();
         List<Post> postList = (List<Post>) postRepository.findAllActivePosts();
         int postCount = postList.size();
-        int likeCount = (int) voteRepository.findAll().stream().filter(p -> p.getValue() == 1)
-                .count();
-        int disLikeCount = (int) voteRepository.findAll().stream().filter(p -> p.getValue() == -1)
-                .count();
-        List<Integer> list = postRepository.findAll().stream().
-                map(Post::getViewCount).
+        int likeCount = (int) voteRepository.findAll().stream().filter(p -> p.getValue() == 1).count();
+        int disLikeCount = (int) voteRepository.findAll().stream().filter(p -> p.getValue() == -1).count();
+        List<Integer> list = postRepository.findAll().stream().map(Post::getViewCount).
                 collect(Collectors.toList());
-        int viewCount = list.stream().
-                reduce(Integer::sum).orElse(0);
+        int viewCount = list.stream().reduce(Integer::sum).orElse(0);
 
         List<Timestamp> localDates = postRepository.findAll().stream().
                 map(Post::getTimestamp).collect(Collectors.toList());
-        Timestamp minLocalDate = localDates.stream()
-                .min(Comparator.naturalOrder()).get();
+        Timestamp minLocalDate = localDates.stream().min(Comparator.naturalOrder()).get();
 
         statisticsResponse.setPostsCount(postCount)
                 .setLikesCount(likeCount)
@@ -92,14 +84,11 @@ public class StatisticsService {
                 .setViewsCount(viewCount)
                 .setFirstPublication(minLocalDate.getTime() / 1000);
 
-        if (globalSettingsRepository.findAll().stream().
-                findAny().
-                orElse(new GlobalSettings()).
+        if (globalSettingsRepository.findAll().stream().findAny().orElse(new GlobalSettings()).
                 isStatisticsIsPublic()) {
             return ResponseEntity.ok(statisticsResponse);
         } else {
             User user = userRepository.findOneByEmail(principal.getName()).orElse(null);
-
             assert user != null;
             if (user.getIsModerator() == 1) {
                 return ResponseEntity.ok(statisticsResponse);

@@ -5,15 +5,11 @@ import main.api.request.CommentRequest;
 import main.api.request.LikeDislikeRequest;
 import main.api.request.PostRequest;
 import main.service.PostService;
-import main.utils.ResponseErrorValidator;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.util.ObjectUtils;
-import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.validation.Valid;
 import java.io.IOException;
 import java.security.Principal;
 
@@ -21,39 +17,33 @@ import java.security.Principal;
 @RequestMapping(value = "/api")
 @RequiredArgsConstructor
 public class ApiPostController {
+    
     private final PostService postService;
-    private final ResponseErrorValidator responseErrorValidator;
 
     @GetMapping("/post")
     @ResponseBody
-    public ResponseEntity<?> getPosts (@RequestParam(defaultValue="0") Integer offset,
+    public ResponseEntity<?> getPosts(@RequestParam(defaultValue="0") Integer offset,
                                        @RequestParam(defaultValue="10") Integer limit,
                                        @RequestParam String mode) {
         return postService.getPosts(offset, limit, mode);
     }
 
     @PostMapping("/post")
-    public ResponseEntity<?> createPost(@Valid @RequestBody PostRequest postRequest, BindingResult result, Principal principal) {
-        ResponseEntity<Object> errors = responseErrorValidator.mapValidationService(result);
-        if (!ObjectUtils.isEmpty(errors)) return errors;
-
+    public ResponseEntity<?> createPost(@RequestBody PostRequest postRequest, Principal principal) {
         return postService.createPost(postRequest, principal);
     }
 
     @PutMapping("/post/{ID:\\d+}")
-    public ResponseEntity<?> putPost (@Valid @RequestBody PostRequest postRequest, BindingResult result, @PathVariable(value = "ID") int id){
-        ResponseEntity<Object> errors = responseErrorValidator.mapValidationService(result);
-        if (!ObjectUtils.isEmpty(errors)) return errors;
-
-        return postService.putPost(id, postRequest);
+    public ResponseEntity<?> putPost(@RequestBody PostRequest postRequest,
+                                      @PathVariable(value = "ID") int id) {
+        return postService.changePost(id, postRequest);
     }
 
     @GetMapping("/post/search")
-    public ResponseEntity<?> searchPosts (@RequestParam String query,
+    public ResponseEntity<?> searchPosts(@RequestParam String query,
                                           @RequestParam(defaultValue = "0") Integer offset,
                                           @RequestParam(defaultValue = "5") Integer limit) {
         if (query.isBlank()) return getPosts(offset, limit, "recent");
-
         return postService.searchPosts(query, offset, limit);
     }
 
@@ -78,8 +68,8 @@ public class ApiPostController {
     }
 
     @GetMapping("/post/{ID:\\d+}")
-    public ResponseEntity<?> postById(@PathVariable("ID") Integer ID) {
-        return postService.getPostById(ID);
+    public ResponseEntity<?> postById(@PathVariable("ID") Integer id) {
+        return postService.postById(id);
     }
 
     @GetMapping("/post/my")
@@ -87,7 +77,7 @@ public class ApiPostController {
                                         @RequestParam(defaultValue = "0") Integer offset,
                                         @RequestParam(defaultValue = "5") Integer limit,
                                         @RequestParam String status) {
-        return postService.getMyPosts(principal, offset, limit, status);
+        return postService.myPosts(principal, offset, limit, status);
     }
 
     @GetMapping("/post/moderation")
@@ -95,30 +85,26 @@ public class ApiPostController {
                                                    @RequestParam(defaultValue="3") Integer limit,
                                                    @RequestParam(defaultValue="NEW") String status,
                                                    Principal principal) {
-        return postService.getPostsForModeration(offset, limit, status, principal);
+        return postService.postsForModeration(offset, limit, status, principal);
     }
 
     @PostMapping("/comment")
-    private ResponseEntity<?> comment(@Valid @RequestBody CommentRequest commentRequest, BindingResult result, Principal principal) {
-        ResponseEntity<Object> errors = responseErrorValidator.mapValidationService(result);
-        if (!ObjectUtils.isEmpty(errors)) return errors;
-
-        return postService.postComment(commentRequest, principal);
+    private ResponseEntity<?> comment(@RequestBody CommentRequest commentRequest, Principal principal) {
+        return postService.addComment(commentRequest, principal);
     }
 
     @PostMapping("/post/like")
     public ResponseEntity<?> like(@RequestBody LikeDislikeRequest likeDislikeRequest, Principal principal) {
-        return postService.postLikeDislike(likeDislikeRequest, principal, 1);
+        return postService.addLikeDislike(likeDislikeRequest, principal, 1);
     }
 
     @PostMapping("/post/dislike")
-    public ResponseEntity<?> dislike(@RequestBody LikeDislikeRequest likeDislikeRequest, Principal principal)
-    {
-        return postService.postLikeDislike(likeDislikeRequest, principal, -1);
+    public ResponseEntity<?> dislike(@RequestBody LikeDislikeRequest likeDislikeRequest, Principal principal) {
+        return postService.addLikeDislike(likeDislikeRequest, principal, -1);
     }
 
     @PostMapping (value = "/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public @ResponseBody ResponseEntity<?> image(@RequestBody MultipartFile image) throws IOException {
-        return postService.postImage(image);
+        return postService.addImage(image);
     }
 }

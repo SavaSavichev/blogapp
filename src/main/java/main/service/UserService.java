@@ -25,13 +25,14 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 public class UserService {
+
     private final UserRepository userRepository;
     private final SecurityConfig securityConfig;
 
     @Value("${config.passwordMinLength}")
-    private Integer passMinLength;
+    private Integer passwordMinLength;
     @Value("${config.passwordMaxLength}")
-    private Integer passMaxLength;
+    private Integer passwordMaxLength;
     @Value("${config.avatarHeight}")
     private Integer avatarHeight;
     @Value("${config.avatarWidth}")
@@ -41,93 +42,80 @@ public class UserService {
     @Value("${config.maxImageSize}")
     private Integer maxImageSize;
 
-    public ResponseEntity<?> getPostProfileMyWithPhoto(MultipartFile photo, String email, String name,
-                                              String password, String removePhoto, Principal principal) throws IOException {
-        boolean result = true;
+    public ResponseEntity<?> updateProfileWithPhoto(MultipartFile photo, String email, String name,
+                                                    String password, String removePhoto,
+                                                    Principal principal) throws IOException {
         Optional<User> user = userRepository.findOneByEmail(principal.getName());
         User currentUser = user.get();
         Map<String, Object> errors = new LinkedHashMap<>();
         ResultResponse resultResponse = new ResultResponse();
-        if(photo != null) {
+        if (photo != null) {
             if (photo.getBytes().length <= maxImageSize) {
-                    File convertFile = saveImage(photo, avatarHeight, avatarWidth);
-                    String photoDestination = StringUtils.cleanPath(convertFile.getPath());
-                    currentUser.setPhoto("/" + photoDestination);
+                File convertFile = saveImage(photo, avatarHeight, avatarWidth);
+                String photoDestination = StringUtils.cleanPath(convertFile.getPath());
+                currentUser.setPhoto("/" + photoDestination);
             } else {
-                result = false;
                 errors.put("photo", "Фото слишком большое, нужно не более 5 Мб.");
             }
         }
-        if (password != null) {
-            if (password.length() < passMinLength && password.length() > passMaxLength) {
-                result = false;
-                errors.put("password", "Длина пароля с ошибкой");
-            }
-        }
-        if (!name.matches("[a-zA-Z]*") || name.length() > nameLength || name.length() < 2) {
-            result = false;
-            errors.put("name", "Имя указано неверно.");
-        }
-        if (!result) {
+        errors.putAll(profileValidate(password, name));
+
+        if (!errors.isEmpty()) {
             resultResponse.setResult(false);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(resultResponse);
         } else {
-            currentUser.setName(name);
-            if(email != null && !currentUser.getEmail().equals(email)) {
-                currentUser.setEmail(email);
-            }
-            if(password != null) {
-                currentUser.setPassword(securityConfig.passwordEncoder().encode(password));
-            }
-            if(removePhoto != null) {
-                if (removePhoto.equals("1")) {
-                    currentUser.setPhoto("");
-                }
-            }
-            userRepository.save(currentUser);
+            saveProfileChange(currentUser, removePhoto, email, password, name);
             resultResponse.setResult(true);
             return ResponseEntity.ok(resultResponse);
         }
     }
 
-    public ResponseEntity<?> getPostProfileMy(String email, String name,
-                                              String password, String removePhoto, Principal principal) throws IOException {
-        boolean result = true;
+    public ResponseEntity<?> updateProfile(String email, String name,
+                                           String password, String removePhoto,
+                                           Principal principal) throws IOException {
         Optional<User> user = userRepository.findOneByEmail(principal.getName());
         User currentUser = user.get();
-        Map<String, Object> errors = new LinkedHashMap<>();
         ResultResponse resultResponse = new ResultResponse();
+        Map<String, Object> errors = profileValidate(password, name);
 
+        if (!errors.isEmpty()) {
+            resultResponse.setResult(false);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(resultResponse);
+        } else {
+            saveProfileChange(currentUser, removePhoto, email, password, name);
+            resultResponse.setResult(true);
+            return ResponseEntity.ok(resultResponse);
+        }
+    }
+
+    private void saveProfileChange(User currentUser, String removePhoto, String email,
+                                   String password, String name) {
+        currentUser.setName(name);
+        if (removePhoto != null) {
+            if (removePhoto.equals("1")) {
+                currentUser.setPhoto("");
+            }
+        }
+        if (email != null && !currentUser.getEmail().equals(email)) {
+            currentUser.setEmail(email);
+        }
         if (password != null) {
-            if (password.length() < passMinLength && password.length() > passMaxLength) {
-                result = false;
+            currentUser.setPassword(securityConfig.passwordEncoder().encode(password));
+        }
+        userRepository.save(currentUser);
+    }
+
+    private Map<String, Object> profileValidate(String password, String name) {
+        Map<String, Object> errors = new LinkedHashMap<>();
+        if (password != null) {
+            if (password.length() < passwordMinLength || password.length() > passwordMaxLength) {
                 errors.put("password", "Длина пароля с ошибкой");
             }
         }
         if (!name.matches("[a-zA-Z]*") || name.length() > nameLength || name.length() < 2) {
-            result = false;
             errors.put("name", "Имя указано неверно.");
         }
-        if (!result) {
-            resultResponse.setResult(false);
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(resultResponse);
-        } else {
-            currentUser.setName(name);
-            if(removePhoto != null) {
-                if (removePhoto.equals("1")) {
-                    currentUser.setPhoto("");
-                }
-            }
-            if(email != null && !currentUser.getEmail().equals(email)) {
-                currentUser.setEmail(email);
-            }
-            if(password != null) {
-                currentUser.setPassword(securityConfig.passwordEncoder().encode(password));
-            }
-            userRepository.save(currentUser);
-            resultResponse.setResult(true);
-            return ResponseEntity.ok(resultResponse);
-        }
+        return errors;
     }
 
     public File saveImage(MultipartFile photo, int height, int width) throws IOException {

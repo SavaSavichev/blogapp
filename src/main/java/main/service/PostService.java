@@ -34,6 +34,7 @@ import static java.time.LocalDateTime.now;
 @RequiredArgsConstructor
 @Service
 public class PostService {
+
     private final PostRepository postRepository;
     private final PostFacade postFacade;
     private final TagRepository tagRepository;
@@ -51,7 +52,7 @@ public class PostService {
 
     public ResponseEntity<?> getPosts(Integer offset, Integer limit, String mode) {
         if (offset > limit) {
-            return new ResponseEntity<>("Wrong input parameters!", HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>("Неправильные входные параметры!", HttpStatus.BAD_REQUEST);
         }
         List<Post> posts = getSortedPosts(offset, limit, mode);
 
@@ -62,7 +63,7 @@ public class PostService {
 
     public ResponseEntity<?> searchPosts(String query, Integer offset, Integer limit) {
         if (offset > limit) {
-            return new ResponseEntity<>("Wrong input parameters!", HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>("Неправильные входные параметры!", HttpStatus.BAD_REQUEST);
         }
         List<Post> posts = postRepository.findByTextContaining(query.trim());
 
@@ -72,7 +73,7 @@ public class PostService {
 
     public ResponseEntity<?> postsByDate(String date, Integer offset, Integer limit) {
         if (offset > limit) {
-            return new ResponseEntity<>("Wrong input parameters!", HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>("Неправильные входные параметры!", HttpStatus.BAD_REQUEST);
         }
         List<Post> posts = postRepository.findAllActivePosts()
                 .stream()
@@ -133,11 +134,11 @@ public class PostService {
         List<Post> sortedPost = new ArrayList<>();
         List<Post> posts = new ArrayList<>();
         if (offset > limit) {
-            return ResponseEntity.badRequest().body("Wrong input parameters!");
+            return ResponseEntity.badRequest().body("Неправильные входные параметры!");
         }
         List<Tag> tags = tagRepository.findPostsByTagName(tag);
         if (tags.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NO_CONTENT).body("No tag " + tag + " is registered.");
+            return ResponseEntity.status(HttpStatus.NO_CONTENT).body("Тэг " + tag + " не зарегестрирован!");
         } else {
             int tagId = 0;
             for(Tag tag1: tags) {
@@ -159,17 +160,17 @@ public class PostService {
         return ResponseEntity.ok(postResponse);
     }
 
-    public ResponseEntity<?> getPostById(Integer id) {
+    public ResponseEntity<?> postById(Integer id) {
         if (postRepository.findById(id).isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Post with ID = " + id + " not found.");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Пост с ID = " + id + " не найден!");
         }
         PostByIdResponse postByIdResponse = postFacade.mappingPostById(id);
         return ResponseEntity.ok(postByIdResponse);
     }
 
-    public ResponseEntity<?> getMyPosts(Principal principal, Integer offset, Integer limit, String status) {
+    public ResponseEntity<?> myPosts(Principal principal, Integer offset, Integer limit, String status) {
         if (offset > limit) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Wrong input parameters!");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Неправильные входные параметры!");
         }
 
         Optional<User> user = userRepository.findOneByEmail(principal.getName());
@@ -249,7 +250,15 @@ public class PostService {
     public ResponseEntity<?> createPost(PostRequest postRequest, Principal principal) {
         User currentUser = userRepository.findOneByEmail(principal.getName()).orElse(null);
         Post post = new Post();
+        ResultResponse resultResponse = new ResultResponse();
+        Map<String, String> errors = textValidate(postRequest.getTitle(), postRequest.getText());
         Timestamp currentTimestamp = Timestamp.valueOf(LocalDateTime.now());
+
+        if (!errors.isEmpty()) {
+            resultResponse.setResult(false);
+            resultResponse.setErrors(errors);
+            return ResponseEntity.ok(resultResponse);
+        }
 
         if (postRequest.getTimestamp() <= currentTimestamp.getTime() / 1000) {
             post.setTimestamp(currentTimestamp);
@@ -269,16 +278,20 @@ public class PostService {
 
         postRepository.save(post);
         saveTags(post, postRequest);
-        ResultResponse resultResponse = new ResultResponse();
         resultResponse.setResult(true);
 
         return ResponseEntity.ok(resultResponse);
     }
 
-    public ResponseEntity<?> putPost(int id, PostRequest postRequest) {
+    public ResponseEntity<?> changePost(int id, PostRequest postRequest) {
         Optional<Post> postOptional = postRepository.findById(id);
         ResultResponse resultResponse = new ResultResponse();
-        resultResponse.setResult(false);
+        Map<String, String> errors = textValidate(postRequest.getTitle(), postRequest.getText());
+        if (!errors.isEmpty()) {
+            resultResponse.setResult(false);
+            resultResponse.setErrors(errors);
+            return ResponseEntity.ok(resultResponse);
+        }
         if (postOptional.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(resultResponse);
         }
@@ -304,9 +317,9 @@ public class PostService {
     private void saveTags(Post post, PostRequest postRequest) {
         for (String tag : postRequest.getTags()) {
             Tag tagModel = tagRepository.findTagByName(tag).orElse(null);
-            if(tagModel == null) {
+            if (tagModel == null) {
                 tagModel = new Tag();
-                tagModel.setName(tag);
+                tagModel.setName(tag.toUpperCase());
                 tagRepository.save(tagModel);
             }
             Tag2Post tag2Post = new Tag2Post();
@@ -316,13 +329,19 @@ public class PostService {
         }
     }
 
-    public ResponseEntity<?> postComment(CommentRequest commentRequest, Principal principal) {
+    public ResponseEntity<?> addComment(CommentRequest commentRequest, Principal principal) {
         User user = userRepository.findOneByEmail(principal.getName()).orElse(null);
         assert user != null;
         Integer userId = user.getUserId();
         Integer postId = commentRequest.getPostId();
         Comment postComment = new Comment();
+        Map<String, String> errors = new LinkedHashMap<>();
+        ResultResponse resultResponse = new ResultResponse();
 
+        if (commentRequest.getText().length() < 5 || commentRequest.getText().length() > 250) {
+            errors.put("text", "Текст комментария не задан или слишком короткий!");
+        }
+        if (errors.isEmpty()) {
             if (commentRequest.getParentId() != null) {
                 postComment.setParent_id(commentRequest.getParentId());
             }
@@ -332,14 +351,15 @@ public class PostService {
             postComment.setTime(Timestamp.valueOf(now()));
             postComment.setUserId(userId);
             commentRepository.saveAndFlush(postComment);
-
-        ResultResponse response = new ResultResponse();
-        response.setId(postComment.getCommentId());
-
-        return ResponseEntity.ok(response);
+            resultResponse.setId(postComment.getCommentId());
+        } else {
+            resultResponse.setResult(false);
+            resultResponse.setErrors(errors);
+        }
+        return ResponseEntity.ok(resultResponse);
     }
 
-    public ResponseEntity<?> postLikeDislike(LikeDislikeRequest likeDislikeRequest, Principal principal, Integer value) {
+    public ResponseEntity<?> addLikeDislike(LikeDislikeRequest likeDislikeRequest, Principal principal, Integer value) {
         Vote vote;
         User user = userRepository.findOneByEmail(principal.getName()).orElse(null);
         assert user != null;
@@ -375,28 +395,28 @@ public class PostService {
         return postVote;
     }
 
-    public ResponseEntity<?> postImage(MultipartFile image) throws IOException {
+    public ResponseEntity<?> addImage(MultipartFile image) throws IOException {
         int maxImageSize = 1_000_000;
         Map<String, Object> errors = new LinkedHashMap<>();
         Map<String, Object> responseMap = new LinkedHashMap<>();
 
-            if (image.getSize() <= maxImageSize) {
-                File convertedFile = userService.saveImage(image, imageHeight, imageWidth);
-                String photoDestination = StringUtils.cleanPath(convertedFile.getPath());
+        if (image.getSize() <= maxImageSize) {
+            File convertedFile = userService.saveImage(image, imageHeight, imageWidth);
+            String photoDestination = StringUtils.cleanPath(convertedFile.getPath());
                 if (!photoDestination.endsWith("jpg") && !photoDestination.endsWith("png")) {
-                    errors.put("image", "Wrong format of the photo!");
+                    errors.put("image", "Неправильный формат фотографии!");
                     responseMap.put("result", false);
                     responseMap.put("errors", errors);
 
                     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseMap);
                 }
                 return ResponseEntity.ok("/" + photoDestination);
-            } else {
-                errors.put("image", "Размер файла превышает допустимый размер");
-                responseMap.put("result", false);
-                responseMap.put("errors", errors);
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseMap);
-            }
+        } else {
+            errors.put("image", "Размер файла превышает допустимый размер");
+            responseMap.put("result", false);
+            responseMap.put("errors", errors);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseMap);
+        }
     }
 
     public ResponseEntity<?> updateModeration(Integer postId, String decision, Principal principal) {
@@ -405,7 +425,6 @@ public class PostService {
         User user = currentUser.get();
         if (user.getIsModerator() == 1) {
             Optional<Post> optionalPost = postRepository.findById(postId);
-
             if (optionalPost.isEmpty()) {
                 resultResponse.setResult(false);
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(resultResponse);
@@ -428,9 +447,9 @@ public class PostService {
         return ResponseEntity.ok(resultResponse);
     }
 
-    public ResponseEntity<?> getPostsForModeration(Integer offset, Integer limit, String status, Principal principal) {
+    public ResponseEntity<?> postsForModeration(Integer offset, Integer limit, String status, Principal principal) {
         if (offset > limit) {
-            return ResponseEntity.badRequest().body("Wrong input parameters!");
+            return ResponseEntity.badRequest().body("Неправильные входные параметры!");
         }
         Optional<User> currentUser = userRepository.findOneByEmail(principal.getName());
         User user = currentUser.get();
@@ -438,5 +457,20 @@ public class PostService {
         List<Post> posts = getSortedPostsForModeration(user.getUserId(), offset, limit, status);
         PostResponse postResponse = postFacade.mappingPostResponse(posts, offset, limit);
         return ResponseEntity.ok(postResponse);
+    }
+
+    private Map<String, String> textValidate(String title, String text) {
+        Map<String, String> errors = new LinkedHashMap<>();
+        if (title.length() < 3) {
+            errors.put("title", "Заголовок слишком короткий");
+        } else if (title.length() > 100) {
+            errors.put("title", "Заголовок слишком длинный!");
+        }
+        if (text.length() < 30) {
+            errors.put("text", "Текст публикации слишком короткий");
+        } else if (text.length() > 1500) {
+            errors.put("text", "Текст публикации слишком длинный!");
+        }
+        return errors;
     }
 }

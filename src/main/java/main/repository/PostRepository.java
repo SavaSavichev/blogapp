@@ -12,19 +12,24 @@ import java.util.List;
 
 @Repository
 public interface PostRepository extends JpaRepository<Post, Integer> {
-    @Query("FROM Post p WHERE p.isActive = 1 AND p.moderationStatus = 'ACCEPTED' AND p.timestamp <= now() ORDER BY p.timestamp DESC")
+//    @Query("FROM Post p WHERE p.isActive = 1 AND p.moderationStatus = 'ACCEPTED' AND p.timestamp <= now() ORDER BY p.timestamp DESC")
+    @Query("FROM Post p WHERE p.isActive = 1 AND p.moderationStatus = 'ACCEPTED' ORDER BY p.timestamp DESC")
     Page<Post> getRecentPosts (PageRequest pageRequest);
 
-    @Query ("FROM Post p WHERE p.isActive = 1 AND p.moderationStatus = 'ACCEPTED' AND p.timestamp <= now() ORDER BY SIZE(p.postComments) DESC")
+//    @Query ("FROM Post p WHERE p.isActive = 1 AND p.moderationStatus = 'ACCEPTED' AND p.timestamp <= now() ORDER BY SIZE(p.postComments) DESC")
+    @Query ("FROM Post p WHERE p.isActive = 1 AND p.moderationStatus = 'ACCEPTED' ORDER BY SIZE(p.postComments) DESC")
     Page<Post> getPopularPosts(PageRequest pageRequest);
 
-    @Query("FROM Post p WHERE p.isActive = 1 AND p.moderationStatus = 'ACCEPTED' AND p.timestamp <= now() ORDER BY p.postLikes.size DESC")
+//    @Query("FROM Post p WHERE p.isActive = 1 AND p.moderationStatus = 'ACCEPTED' AND p.timestamp <= now() ORDER BY p.postLikes.size DESC")
+    @Query("FROM Post p WHERE p.isActive = 1 AND p.moderationStatus = 'ACCEPTED' ORDER BY p.postLikes.size DESC")
     Page<Post> getBestPosts(PageRequest pageRequest);
 
-    @Query ("FROM Post p WHERE p.isActive = 1 AND p.moderationStatus = 'ACCEPTED' AND p.timestamp <= now() ORDER BY p.timestamp")
+//    @Query ("FROM Post p WHERE p.isActive = 1 AND p.moderationStatus = 'ACCEPTED' AND p.timestamp <= now() ORDER BY p.timestamp")
+    @Query ("FROM Post p WHERE p.isActive = 1 AND p.moderationStatus = 'ACCEPTED' ORDER BY p.timestamp")
     Page<Post> getEarlyPosts(PageRequest pageRequest);
 
-    @Query("FROM Post p WHERE p.isActive = 1 AND p.moderationStatus = 'ACCEPTED' AND p.timestamp <= now()")
+//    @Query("FROM Post p WHERE p.isActive = 1 AND p.moderationStatus = 'ACCEPTED' AND p.timestamp <= now()")
+    @Query("FROM Post p WHERE p.isActive = 1 AND p.moderationStatus = 'ACCEPTED'")
     Collection<Post> findAllActivePosts ();
 
     @Query("FROM Post p WHERE p.userId = ?1")

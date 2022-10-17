@@ -8,33 +8,26 @@ import main.api.request.RestoreRequest;
 import main.api.response.LoginResponse;
 import main.api.response.ResultResponse;
 import main.service.AuthService;
-import main.utils.ResponseErrorValidator;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.util.ObjectUtils;
-import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
-import javax.validation.Valid;
 import java.security.Principal;
 
 @RestController
 @RequestMapping("/api/auth")
 @AllArgsConstructor
-public class ApiAuthController
-{
+public class ApiAuthController {
+
     private final AuthService authService;
-    private final ResponseErrorValidator responseErrorValidator;
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest){
+    public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
         return authService.getLogin(loginRequest);
     }
 
     @PostMapping("/register")
-    private ResponseEntity<?> register(@Valid @RequestBody RegisterRequest registerRequest, BindingResult result){
-        ResponseEntity<Object> errors = responseErrorValidator.mapValidationService(result);
-        if (!ObjectUtils.isEmpty(errors)) return errors;
+    private ResponseEntity<?> register(@RequestBody RegisterRequest registerRequest) {
         return authService.registration(registerRequest);
     }
 
@@ -52,7 +45,7 @@ public class ApiAuthController
     }
 
     @PostMapping("/password")
-    private ResponseEntity<?> authPassword (@RequestBody PasswordRequest password, Principal principal) {
+    private ResponseEntity<?> authPassword(@RequestBody PasswordRequest password, Principal principal) {
         return authService.authPassword(password, principal);
     }
 
