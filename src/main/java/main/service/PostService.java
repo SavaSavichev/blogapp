@@ -141,7 +141,7 @@ public class PostService {
             return ResponseEntity.status(HttpStatus.NO_CONTENT).body("Тэг " + tag + " не зарегестрирован!");
         } else {
             int tagId = 0;
-            for(Tag tag1: tags) {
+            for (Tag tag1 : tags) {
                 tagId = tag1.getId();
             }
             List<Integer> postsIdList = tag2PostRepository.findPostIdByTagId(tagId);
@@ -149,7 +149,7 @@ public class PostService {
             );
 
             Timestamp timestamp = new Timestamp(System.currentTimeMillis());
-            for (Post post: posts) {
+            for (Post post : posts) {
                 if (post.getIsActive() == 1 && post.getModerationStatus().toString().equals("ACCEPTED")
                         && post.getTimestamp().before(timestamp)) {
                     sortedPost.add(post);
@@ -267,13 +267,13 @@ public class PostService {
         }
         assert currentUser != null;
         post.setIsActive(postRequest.getActive())
-                .setTitle(postRequest.getTitle().replaceAll("<(.*?)>","" ).replaceAll("[\\p{P}\\p{S}]", ""))
+                .setTitle(postRequest.getTitle().replaceAll("<(.*?)>", "").replaceAll("[\\p{P}\\p{S}]", ""))
                 .setModerationStatus(ModerationStatus.NEW)
                 .setText(postRequest.getText())
                 .setUserId(currentUser.getUserId())
                 .setViewCount(0);
         List<Integer> moderatorIds = userRepository.getModeratorIds();
-        int moderatorId = moderatorIds.get((int)(Math.random() * moderatorIds.size()));
+        int moderatorId = moderatorIds.get((int) (Math.random() * moderatorIds.size()));
         post.setModeratorId(moderatorId);
 
         postRepository.save(post);
@@ -403,14 +403,14 @@ public class PostService {
         if (image.getSize() <= maxImageSize) {
             File convertedFile = userService.saveImage(image, imageHeight, imageWidth);
             String photoDestination = StringUtils.cleanPath(convertedFile.getPath());
-                if (!photoDestination.endsWith("jpg") && !photoDestination.endsWith("png")) {
-                    errors.put("image", "Неправильный формат фотографии!");
-                    responseMap.put("result", false);
-                    responseMap.put("errors", errors);
+            if (!photoDestination.endsWith("jpg") && !photoDestination.endsWith("png")) {
+                errors.put("image", "Неправильный формат фотографии!");
+                responseMap.put("result", false);
+                responseMap.put("errors", errors);
 
-                    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseMap);
-                }
-                return ResponseEntity.ok("/" + photoDestination);
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseMap);
+            }
+            return ResponseEntity.ok("/" + photoDestination);
         } else {
             errors.put("image", "Размер файла превышает допустимый размер");
             responseMap.put("result", false);

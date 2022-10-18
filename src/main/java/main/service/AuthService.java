@@ -81,7 +81,7 @@ public class AuthService {
             result = false;
         }
         if (captchaCode.isPresent()) {
-            if(!registerRequest.getCaptcha().equals(captchaCode.get().getCode())) {
+            if (!registerRequest.getCaptcha().equals(captchaCode.get().getCode())) {
                 errors.put("captcha", "Код с картинки введён неверно!");
                 result = false;
             }
@@ -112,12 +112,12 @@ public class AuthService {
             return ResponseEntity.ok(loginResponse);
         }
         User currentUser = user1.get();
-            Authentication auth =
-                    authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword()));
-            SecurityContextHolder.getContext().setAuthentication(auth);
-            loginResponse.setResult(true);
-            loginResponse.setUser(userCheckDTO(currentUser));
-            return ResponseEntity.ok(loginResponse);
+        Authentication auth =
+                authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword()));
+        SecurityContextHolder.getContext().setAuthentication(auth);
+        loginResponse.setResult(true);
+        loginResponse.setUser(userCheckDTO(currentUser));
+        return ResponseEntity.ok(loginResponse);
     }
 
     public ResponseEntity<?> getAuthCheck(String email) {
@@ -130,7 +130,7 @@ public class AuthService {
         return ResponseEntity.ok(loginResponse);
     }
 
-    public UserDTO userCheckDTO (User user) {
+    public UserDTO userCheckDTO(User user) {
         UserDTO userCheckDTO = new UserDTO();
         int modCount =
                 user.getIsModerator() == 1 ? userRepository.getModerationCount(user.getUserId()) : 0;
@@ -191,30 +191,30 @@ public class AuthService {
         ResultResponse resultResponse = new ResultResponse();
         resultResponse.setResult(false);
         Optional<User> optionalUser = userRepository.findOneByEmail(restoreRequest.getEmail());
-            if (optionalUser.isPresent()) {
-                String code = generateCode(16);
-                User user = optionalUser.get();
-                user.setCode(code);
-                userRepository.save(user);
-                String text = "/login/change-password/" + code;
-                SimpleMailMessage simpleMailMessage = new SimpleMailMessage();
-                simpleMailMessage.setFrom("a.savichev13@gmail.com");
-                simpleMailMessage.setTo(restoreRequest.getEmail());
-                simpleMailMessage.setSubject("Восстановление пароля DevPub");
-                simpleMailMessage.setText(text);
-                try {
-                    mailSender.send(simpleMailMessage);
-                } catch (MailSendException ex) {
-                    ex.printStackTrace();
-                    return ResponseEntity.badRequest().body(resultResponse);
-                }
-                resultResponse.setResult(true);
-                return ResponseEntity.ok(resultResponse);
+        if (optionalUser.isPresent()) {
+            String code = generateCode(16);
+            User user = optionalUser.get();
+            user.setCode(code);
+            userRepository.save(user);
+            String text = "/login/change-password/" + code;
+            SimpleMailMessage simpleMailMessage = new SimpleMailMessage();
+            simpleMailMessage.setFrom("a.savichev13@gmail.com");
+            simpleMailMessage.setTo(restoreRequest.getEmail());
+            simpleMailMessage.setSubject("Восстановление пароля DevPub");
+            simpleMailMessage.setText(text);
+            try {
+                mailSender.send(simpleMailMessage);
+            } catch (MailSendException ex) {
+                ex.printStackTrace();
+                return ResponseEntity.badRequest().body(resultResponse);
             }
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(resultResponse);
+            resultResponse.setResult(true);
+            return ResponseEntity.ok(resultResponse);
+        }
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(resultResponse);
     }
 
-    public ResponseEntity<?> authPassword (PasswordRequest password, Principal principal) {
+    public ResponseEntity<?> authPassword(PasswordRequest password, Principal principal) {
         User user = userRepository.findOneByEmail(principal.getName()).orElse(null);
         ResultResponse resultResponse = new ResultResponse();
         assert user != null;

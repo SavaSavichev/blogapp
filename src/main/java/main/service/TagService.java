@@ -53,10 +53,10 @@ public class TagService {
                 .mapToInt(tag -> tag.get().getId())
                 .map(tagId -> tag2PostRepository.findPostIdByTagId(tagId).size())
                 .forEach(postToTagCount -> {
-            postPerTagList.add((postToTagCount));
-            double nNWeight = (double) postToTagCount / count;
-            partialWeights.add(nNWeight);
-        });
+                    postPerTagList.add((postToTagCount));
+                    double nNWeight = (double) postToTagCount / count;
+                    partialWeights.add(nNWeight);
+                });
         int maxPostsPerTag = postPerTagList.stream().max(Comparator.naturalOrder()).orElse(count);
         double k = 1 / ((double) maxPostsPerTag / count);
 

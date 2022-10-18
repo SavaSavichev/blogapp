@@ -13,22 +13,22 @@ import java.util.List;
 @Repository
 public interface PostRepository extends JpaRepository<Post, Integer> {
     @Query("FROM Post p WHERE p.isActive = 1 AND p.moderationStatus = 'ACCEPTED' AND p.timestamp <= now() ORDER BY p.timestamp DESC")
-    Page<Post> getRecentPosts (PageRequest pageRequest);
+    Page<Post> getRecentPosts(PageRequest pageRequest);
 
-    @Query ("FROM Post p WHERE p.isActive = 1 AND p.moderationStatus = 'ACCEPTED' AND p.timestamp <= now() ORDER BY SIZE(p.postComments) DESC")
+    @Query("FROM Post p WHERE p.isActive = 1 AND p.moderationStatus = 'ACCEPTED' AND p.timestamp <= now() ORDER BY SIZE(p.postComments) DESC")
     Page<Post> getPopularPosts(PageRequest pageRequest);
 
     @Query("FROM Post p WHERE p.isActive = 1 AND p.moderationStatus = 'ACCEPTED' AND p.timestamp <= now() ORDER BY p.postLikes.size DESC")
     Page<Post> getBestPosts(PageRequest pageRequest);
 
-    @Query ("FROM Post p WHERE p.isActive = 1 AND p.moderationStatus = 'ACCEPTED' AND p.timestamp <= now() ORDER BY p.timestamp")
+    @Query("FROM Post p WHERE p.isActive = 1 AND p.moderationStatus = 'ACCEPTED' AND p.timestamp <= now() ORDER BY p.timestamp")
     Page<Post> getEarlyPosts(PageRequest pageRequest);
 
     @Query("FROM Post p WHERE p.isActive = 1 AND p.moderationStatus = 'ACCEPTED' AND p.timestamp <= now()")
-    Collection<Post> findAllActivePosts ();
+    Collection<Post> findAllActivePosts();
 
     @Query("FROM Post p WHERE p.userId = ?1")
-    List<Post> findAllPostsByUserId (Integer userId);
+    List<Post> findAllPostsByUserId(Integer userId);
 
     @Query("FROM Post p WHERE p.userId = ?1 AND p.isActive = 1 AND p.moderationStatus = 'ACCEPTED'")
     List<Post> findAllActivePostsByUserId(Integer userId);

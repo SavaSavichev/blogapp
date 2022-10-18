@@ -27,7 +27,7 @@ public class PostFacade {
     private final Tag2PostRepository tag2PostRepository;
     private final TagRepository tagRepository;
 
-    public PostResponse mappingPostResponse (List<Post> posts, Integer offset, Integer limit) {
+    public PostResponse mappingPostResponse(List<Post> posts, Integer offset, Integer limit) {
         List<PostDTO> postDTOS = new ArrayList<>();
 
         for (Post post : posts) {
@@ -61,7 +61,7 @@ public class PostFacade {
 
         for (Post post : posts)
             if (post.getIsActive() == 1 && post.getModerationStatus().toString().equals("ACCEPTED")
-            && post.getTimestamp().before(timestamp)) {
+                    && post.getTimestamp().before(timestamp)) {
                 sortedPosts.add(post);
             }
 

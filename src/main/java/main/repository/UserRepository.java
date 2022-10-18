@@ -16,5 +16,5 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     Integer getModerationCount(Integer userId);
 
     @Query("SELECT u.userId FROM User u WHERE u.isModerator = 1")
-    List<Integer> getModeratorIds ();
+    List<Integer> getModeratorIds();
 }

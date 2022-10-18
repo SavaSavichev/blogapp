@@ -10,7 +10,7 @@ import java.util.List;
 @Repository
 public interface CommentRepository extends JpaRepository<Comment, Integer> {
     @Query("FROM Comment pc WHERE pc.post_id = ?1")
-    List<Comment> findCommentsByPostId (int post_id);
+    List<Comment> findCommentsByPostId(int post_id);
 
     @Query("SELECT count(pc) FROM Comment pc WHERE pc.post_id = ?1")
     int getCommentCountByPostId(int post_id);

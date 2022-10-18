@@ -16,7 +16,7 @@ public class ApiAvatarController {
 
     @GetMapping("")
     @ResponseBody
-    private HttpEntity<byte[]> getPhoto(
+    public HttpEntity<byte[]> getPhoto(
             @PathVariable("folder") String folder,
             @PathVariable("dir1") String dir1,
             @PathVariable("dir2") String dir2,

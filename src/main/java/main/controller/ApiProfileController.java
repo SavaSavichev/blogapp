@@ -5,6 +5,7 @@ import main.api.request.ProfileRequest;
 import main.service.UserService;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -20,6 +21,7 @@ public class ApiProfileController {
 
     @PostMapping(value = "/my", consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasAuthority('user:write')")
     public ResponseEntity<?> updateProfile(@RequestBody ProfileRequest request,
                                            Principal principal) throws IOException {
         return userService.updateProfile(request.getEmail(), request.getName(),
@@ -28,6 +30,7 @@ public class ApiProfileController {
 
     @PostMapping(value = "/my", consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasAuthority('user:write')")
     public ResponseEntity<?> updateProfileWithPhoto(
             @RequestParam("photo") MultipartFile photo,
             @RequestParam("removePhoto") String removePhoto,

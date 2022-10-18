@@ -11,6 +11,7 @@ import main.service.StatisticsService;
 import main.service.TagService;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
@@ -28,43 +29,47 @@ public class ApiGeneralController {
     private final PostService postService;
 
     @GetMapping("/init")
-    private InitResponse init() {
+    public InitResponse init() {
         return initResponse;
     }
 
     @GetMapping("/settings")
-    private ResponseEntity<?> getSettings() {
+    public ResponseEntity<?> getSettings() {
         return settingsService.getSettings();
     }
 
     @PutMapping("/settings")
-    private ResponseEntity<?> putSettings(@RequestBody @Valid SettingsRequest settings,
+    @PreAuthorize("hasAuthority('user:moderate')")
+    public ResponseEntity<?> putSettings(@RequestBody @Valid SettingsRequest settings,
                                           Principal principal) {
         return settingsService.updateSettings(settings, principal);
     }
 
     @GetMapping("/tag/{query}")
-    private ResponseEntity<?> getTag(@PathVariable("query") String query) {
+    public ResponseEntity<?> getTag(@PathVariable("query") String query) {
         return tagService.getTag(query);
     }
 
     @GetMapping("/tag")
-    private ResponseEntity<?> getTag() {
+    public ResponseEntity<?> getTag() {
         return tagService.getTag();
     }
 
     @GetMapping("/statistics/my")
-    private ResponseEntity<?> getMyStatistics (Principal principal) {
+    @PreAuthorize("hasAuthority('user:write')")
+    public ResponseEntity<?> getMyStatistics(Principal principal) {
         return statisticService.getMyStatistics(principal);
     }
 
     @GetMapping("/statistics/all")
-    private ResponseEntity<?> getAllStatistics (Principal principal) {
+    @PreAuthorize("hasAuthority('user:write')")
+    public ResponseEntity<?> getAllStatistics(Principal principal) {
         return statisticService.getAllStatistics(principal);
     }
 
     @PostMapping("/moderation")
-    private ResponseEntity<?> moderation(@RequestBody PostModerationRequest postModerationRequest,
+    @PreAuthorize("hasAuthority('user:moderate')")
+    public ResponseEntity<?> moderation(@RequestBody PostModerationRequest postModerationRequest,
                                          Principal principal) {
         return postService.updateModeration(postModerationRequest.getId(),
                 postModerationRequest.getDecision(), principal);

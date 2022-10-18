@@ -42,8 +42,8 @@ public class SettingsService {
         if (userRepository.getOne(userId).getIsModerator() == 1) {
             globalSettingsRepository.deleteAll();
             globalSettings.setMultiuserMode(settingsRequest.isMultiuserMode())
-                        .setPostPremoderation(settingsRequest.isPostPremoderation())
-                        .setStatisticsIsPublic(settingsRequest.isStatisticsIsPublic());
+                    .setPostPremoderation(settingsRequest.isPostPremoderation())
+                    .setStatisticsIsPublic(settingsRequest.isStatisticsIsPublic());
             globalSettingsRepository.save(globalSettings);
 
             return getSettings();

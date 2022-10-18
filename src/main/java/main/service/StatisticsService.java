@@ -43,7 +43,7 @@ public class StatisticsService {
                         .setLikesCount(0)
                         .setDislikesCount(0)
                         .setViewsCount(0)
-                        .setFirstPublication((long)0);
+                        .setFirstPublication((long) 0);
                 return ResponseEntity.ok(statisticsResponse);
             }
             int postsLikeCount = (int) voteRepository.findAllPostVotesByUserId(id).stream().

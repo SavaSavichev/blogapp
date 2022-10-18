@@ -9,6 +9,7 @@ import main.api.response.LoginResponse;
 import main.api.response.ResultResponse;
 import main.service.AuthService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
@@ -27,11 +28,12 @@ public class ApiAuthController {
     }
 
     @PostMapping("/register")
-    private ResponseEntity<?> register(@RequestBody RegisterRequest registerRequest) {
+    public ResponseEntity<?> register(@RequestBody RegisterRequest registerRequest) {
         return authService.registration(registerRequest);
     }
 
     @GetMapping("/logout")
+    @PreAuthorize("hasAuthority('user:write')")
     public ResponseEntity<?> logout() {
         SecurityContextHolder.getContext().setAuthentication(null);
         ResultResponse resultResponse = new ResultResponse();
@@ -45,12 +47,12 @@ public class ApiAuthController {
     }
 
     @PostMapping("/password")
-    private ResponseEntity<?> authPassword(@RequestBody PasswordRequest password, Principal principal) {
+    public ResponseEntity<?> authPassword(@RequestBody PasswordRequest password, Principal principal) {
         return authService.authPassword(password, principal);
     }
 
     @GetMapping("/check")
-    private ResponseEntity<?> authCheck(Principal principal) {
+    public ResponseEntity<?> authCheck(Principal principal) {
         if (principal == null) return ResponseEntity.ok(new LoginResponse());
         return authService.getAuthCheck(principal.getName());
     }

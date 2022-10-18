@@ -64,10 +64,10 @@ public class Post implements Serializable {
 
     public String getAnnounce() {
         String postText = getText();
-        if( postText == null){
+        if (postText == null) {
             return "";
         }
-        String announce = postText.replaceAll("<(.*?)>","" )
+        String announce = postText.replaceAll("<(.*?)>", "")
                 .replaceAll("[\\p{P}\\p{S}]", "");
         announce = announce.substring(0, Math.min(150, announce.length())) + "...";
         return announce;

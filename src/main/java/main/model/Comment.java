@@ -13,7 +13,7 @@ import java.sql.Timestamp;
 public class Comment {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name="id")
+    @Column(name = "id")
     private Integer commentId;
     private Integer parent_id;
     @Column(insertable = false, updatable = false)
@@ -23,6 +23,6 @@ public class Comment {
     private Timestamp time;
     private String text;
     @ManyToOne(cascade = CascadeType.ALL)
-    @JoinColumn(name="post_id")
+    @JoinColumn(name = "post_id")
     public Post post;
 }
