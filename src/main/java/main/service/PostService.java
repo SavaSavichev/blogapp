@@ -43,6 +43,7 @@ public class PostService {
     private final CommentRepository commentRepository;
     private final VoteRepository voteRepository;
     private final UserService userService;
+    private final GlobalSettingsRepository globalSettingsRepository;
 
     @Value("${config.imageHeight}")
     private Integer imageHeight;
@@ -259,7 +260,6 @@ public class PostService {
             resultResponse.setErrors(errors);
             return ResponseEntity.ok(resultResponse);
         }
-
         if (postRequest.getTimestamp() <= currentTimestamp.getTime() / 1000) {
             post.setTimestamp(currentTimestamp);
         } else {
@@ -268,14 +268,19 @@ public class PostService {
         assert currentUser != null;
         post.setIsActive(postRequest.getActive())
                 .setTitle(postRequest.getTitle().replaceAll("<(.*?)>", "").replaceAll("[\\p{P}\\p{S}]", ""))
-                .setModerationStatus(ModerationStatus.NEW)
                 .setText(postRequest.getText())
                 .setUserId(currentUser.getUserId())
                 .setViewCount(0);
         List<Integer> moderatorIds = userRepository.getModeratorIds();
         int moderatorId = moderatorIds.get((int) (Math.random() * moderatorIds.size()));
         post.setModeratorId(moderatorId);
-
+        if (currentUser.getIsModerator() != 1 && globalSettingsRepository.findAll().stream().
+                findAny().orElse(new GlobalSettings()).
+                isPostPremoderation()) {
+            post.setModerationStatus(ModerationStatus.NEW);
+        } else {
+            post.setModerationStatus(ModerationStatus.ACCEPTED);
+        }
         postRepository.save(post);
         saveTags(post, postRequest);
         resultResponse.setResult(true);
@@ -287,6 +292,7 @@ public class PostService {
         Optional<Post> postOptional = postRepository.findById(id);
         ResultResponse resultResponse = new ResultResponse();
         Map<String, String> errors = textValidate(postRequest.getTitle(), postRequest.getText());
+
         if (!errors.isEmpty()) {
             resultResponse.setResult(false);
             resultResponse.setErrors(errors);
@@ -304,8 +310,12 @@ public class PostService {
         if (postRequest.getTimestamp() <= currentTime) {
             post.setTimestamp(new Timestamp(currentTime));
         }
-        if (user.getIsModerator() != 1) {
+        if (user.getIsModerator() != 1 && globalSettingsRepository.findAll().stream().
+                findAny().orElse(new GlobalSettings()).
+                isPostPremoderation()) {
             post.setModerationStatus(ModerationStatus.NEW);
+        } else {
+            post.setModerationStatus(ModerationStatus.ACCEPTED);
         }
         postRepository.save(post);
         saveTags(post, postRequest);
@@ -322,10 +332,13 @@ public class PostService {
                 tagModel.setName(tag.toUpperCase());
                 tagRepository.save(tagModel);
             }
-            Tag2Post tag2Post = new Tag2Post();
-            tag2Post.setPostId(post.getPostId());
-            tag2Post.setTagId(tagModel.getId());
-            tag2PostRepository.save(tag2Post);
+            List<Integer> tag2postList = tag2PostRepository.findTagIdsByPostId(post.getPostId());
+            if (!tag2postList.contains(tagModel.getId())) {
+                Tag2Post tag2Post = new Tag2Post();
+                tag2Post.setPostId(post.getPostId());
+                tag2Post.setTagId(tagModel.getId());
+                tag2PostRepository.save(tag2Post);
+            }
         }
     }
 
