@@ -22,8 +22,8 @@ public class ApiProfileController {
     @PostMapping(value = "/my", consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasAuthority('user:write')")
-    public ResponseEntity<?> updateProfile(@RequestBody ProfileRequest request,
-                                           Principal principal) throws IOException {
+    public ResponseEntity<?> profileMy(@RequestBody ProfileRequest request,
+                                       Principal principal) throws IOException {
         return userService.updateProfile(request.getEmail(), request.getName(),
                 request.getPassword(), request.getRemovePhoto(), principal);
     }
@@ -31,7 +31,7 @@ public class ApiProfileController {
     @PostMapping(value = "/my", consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasAuthority('user:write')")
-    public ResponseEntity<?> updateProfileWithPhoto(
+    public ResponseEntity<?> profileMyWithPhoto(
             @RequestParam("photo") MultipartFile photo,
             @RequestParam("removePhoto") String removePhoto,
             @RequestParam("name") String name,

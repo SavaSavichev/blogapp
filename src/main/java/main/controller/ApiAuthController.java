@@ -47,12 +47,12 @@ public class ApiAuthController {
     }
 
     @PostMapping("/password")
-    public ResponseEntity<?> authPassword(@RequestBody PasswordRequest password, Principal principal) {
-        return authService.authPassword(password, principal);
+    public ResponseEntity<?> password(@RequestBody PasswordRequest password) {
+        return authService.changePassword(password);
     }
 
     @GetMapping("/check")
-    public ResponseEntity<?> authCheck(Principal principal) {
+    public ResponseEntity<?> check(Principal principal) {
         if (principal == null) return ResponseEntity.ok(new LoginResponse());
         return authService.getAuthCheck(principal.getName());
     }

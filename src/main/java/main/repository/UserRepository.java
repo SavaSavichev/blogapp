@@ -17,4 +17,6 @@ public interface UserRepository extends JpaRepository<User, Integer> {
 
     @Query("SELECT u.userId FROM User u WHERE u.isModerator = 1")
     List<Integer> getModeratorIds();
+
+    Optional<User> findOneByCode(String code);
 }

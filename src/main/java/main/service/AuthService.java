@@ -34,7 +34,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.security.Principal;
 import java.security.SecureRandom;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
@@ -196,7 +195,8 @@ public class AuthService {
             User user = optionalUser.get();
             user.setCode(code);
             userRepository.save(user);
-            String text = "/login/change-password/" + code;
+            String text = "http://localhost:8080/login/change-password/" + code + "/";
+
             SimpleMailMessage simpleMailMessage = new SimpleMailMessage();
             simpleMailMessage.setFrom("a.savichev13@gmail.com");
             simpleMailMessage.setTo(restoreRequest.getEmail());
@@ -214,20 +214,37 @@ public class AuthService {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(resultResponse);
     }
 
-    public ResponseEntity<?> authPassword(PasswordRequest password, Principal principal) {
-        User user = userRepository.findOneByEmail(principal.getName()).orElse(null);
+    public ResponseEntity<?> changePassword(PasswordRequest password) {
+        Optional<CaptchaCode> captchaSecret = captchaRepository.findBySecretCode(password.getCaptchaSecret());
+        Optional<User> currentUser = userRepository.findOneByCode(password.getCode());
         ResultResponse resultResponse = new ResultResponse();
-        assert user != null;
-        if (user.getCode().equals(password.getCode())
-                && password.getCaptcha().equals(captchaRepository.findAll().stream().findAny().orElse(new CaptchaCode()).getCode())
-                && password.getCaptchaSecret().equals(captchaRepository.findAll().stream().findAny().orElse(new CaptchaCode()).getSecretCode())) {
+        Map<String, String> errors = new LinkedHashMap<>();
+        result = true;
+
+        if (currentUser.isPresent()) {
+            if (password.getPassword().length() < passMinLength || password.getPassword().length() > passMaxLength) {
+                errors.put("password", "Пароль имеет недопустимую длину!");
+                result = false;
+            }
+            if (captchaSecret.isPresent()) {
+                if (!password.getCaptcha().equals(captchaSecret.get().getCode())) {
+                    errors.put("captcha", "Код с картинки введён неверно!");
+                    result = false;
+                }
+            }
+        } else {
+            errors.put("code", "Ссылка для восстановления пароля не найдена!");
+            result = false;
+        }
+        if (result) {
+            User user = currentUser.get();
             user.setPassword(securityConfig.passwordEncoder().encode(password.getPassword()));
             userRepository.save(user);
             resultResponse.setResult(true);
-            return ResponseEntity.ok(resultResponse);
         } else {
             resultResponse.setResult(false);
-            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(resultResponse);
+            resultResponse.setErrors(errors);
         }
+        return ResponseEntity.ok(resultResponse);
     }
 }
