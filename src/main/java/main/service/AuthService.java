@@ -105,12 +105,12 @@ public class AuthService {
 
     public ResponseEntity<?> getLogin(LoginRequest loginRequest) {
         LoginResponse loginResponse = new LoginResponse();
-        Optional<User> user1 = userRepository.findOneByEmail(loginRequest.getEmail());
+        Optional<User> user = userRepository.findOneByEmail(loginRequest.getEmail());
 
-        if (user1.isEmpty()) {
+        if (user.isEmpty()) {
             return ResponseEntity.ok(loginResponse);
         }
-        User currentUser = user1.get();
+        User currentUser = user.get();
         Authentication auth =
                 authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword()));
         SecurityContextHolder.getContext().setAuthentication(auth);
