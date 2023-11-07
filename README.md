@@ -1,3 +1,17 @@
+# __Description__
+
+Diploma project for the "Java Developer from Scratch" course at Skillbox. 
+As part of the diploma project, it is required to implement a blog engine based on Spring Boot.
+
+# __Requirements__
+|                          |         Ограничение         |
+|-------------------------:|:---------------------------:|
+|              JDK Version |             11              |
+|   Version Control System |             Git             |
+|      Spring Boot Version |            2.2.3            |
+|                 Database |           MySQL 8           |
+|       Project Build Tool |            Maven            |
+
 # __Описание__
 
 Дипломная работа по курсу «Java-разработчик c нуля» от Skillbox.
